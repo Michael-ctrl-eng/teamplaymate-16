@@ -85,6 +85,12 @@ export const api = {
 
   // Health check
   health: `${API_BASE_URL}/api/health`,
+
+  // AI Chat endpoints
+  aiChat: {
+    messages: `${API_BASE_URL}/api/v1/aichat/messages`,
+    history: `${API_BASE_URL}/api/v1/aichat/history`,
+  },
 };
 
 // Mock Auth API functions for local development
