@@ -1,0 +1,25 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.statsor.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  VITE_API_URL = "https://api.statsor.com"
+  VITE_APP_URL = "https://statsor.com"
+
+[context.deploy-preview.environment]
+  VITE_API_URL = "https://api-statsor-preview.vercel.app"
+  VITE_APP_URL = "https://statsor-preview.netlify.app" 
