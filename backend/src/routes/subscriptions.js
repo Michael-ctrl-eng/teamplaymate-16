@@ -1,6 +1,6 @@
 const express = require('express');
 const Joi = require('joi');
-const paypal = require('paypal-rest-sdk');
+const { PayPalService } = require('../services/paypalService.js');
 const { DatabaseService } = require('../services/database.js');
 const { RedisService } = require('../services/redis.js');
 const { 
@@ -22,12 +22,7 @@ const router = express.Router();
 const db = new DatabaseService();
 const redis = new RedisService();
 
-// PayPal configuration
-paypal.configure({
-  mode: process.env.NODE_ENV === 'production' ? 'live' : 'sandbox',
-  client_id: process.env.PAYPAL_CLIENT_ID || 'dummy_client_id',
-  client_secret: process.env.PAYPAL_CLIENT_SECRET || 'dummy_client_secret'
-});
+const payPalService = new PayPalService();
 
 // Logger for payment events
 const paymentLogger = winston.createLogger({
@@ -155,40 +150,6 @@ const validateCoupon = async (couponCode) => {
   return coupon.length > 0 ? coupon[0] : null;
 };
 
-// Stripe functions removed - using PayPal only
-
-const createPayPalSubscription = async (planId, billingCycle) => {
-  try {
-    const plan = SUBSCRIPTION_PLANS[planId];
-    const interval = billingCycle === 'yearly' ? 'YEAR' : 'MONTH';
-    
-    const request = new paypal.orders.OrdersCreateRequest();
-    request.prefer('return=representation');
-    request.requestBody({
-      intent: 'CAPTURE',
-      purchase_units: [{
-        amount: {
-          currency_code: plan.currency,
-          value: calculateDiscountedPrice(plan.price, 0, billingCycle).toString()
-        },
-        description: `${plan.name} - ${billingCycle} billing`
-      }],
-      application_context: {
-        return_url: `${process.env.FRONTEND_URL}/subscription/success`,
-        cancel_url: `${process.env.FRONTEND_URL}/subscription/cancel`
-      }
-    });
-    
-    const order = await paypalClient.execute(request);
-    return order;
-  } catch (error) {
-    paymentLogger.error('PayPal subscription creation failed', { 
-      plan_id: planId, 
-      error: error.message 
-    });
-    throw new PaymentError('Failed to create PayPal subscription');
-  }
-};
 
 const updateSubscriptionUsage = async (subscriptionId, usageType, amount = 1) => {
   const currentUsage = await redis.hget(`subscription:${subscriptionId}:usage`, usageType) || '0';
@@ -298,12 +259,17 @@ router.post('/create',
     let externalSubscriptionId;
 
     // Only PayPal payment method supported
-    if (payment_method === 'paypal') {
-      paymentResult = await createPayPalSubscription(plan_id, billing_cycle);
-      externalSubscriptionId = paymentResult.result.id;
-    } else {
+    if (payment_method !== 'paypal') {
       throw new PaymentError('Only PayPal payment method is supported');
     }
+
+    const planDetails = {
+        ...plan,
+        price: finalPrice,
+    };
+
+    paymentResult = await payPalService.createOrder(planDetails);
+    externalSubscriptionId = paymentResult.id;
 
     // Create subscription record (pending until payment confirmed)
     const subscription = await db.create('subscriptions', {

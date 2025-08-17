@@ -1,9 +1,7 @@
 import { footballAnalysisService } from './footballAnalysisService';
 import { userDataAnalysisService } from './userDataAnalysisService';
-import { injuryAssessmentService, PlayerHealthData } from './injuryAssessmentService';
+import { injuryAssessmentService } from './injuryAssessmentService';
 import { accountManagementService } from './accountManagementService';
-import axios from 'axios';
-import { api } from '../lib/api';
 
 interface ChatMessage {
   id: string;
@@ -108,7 +106,6 @@ class AIChatService {
         "Coaching is about continuous improvement. Your team's progress shows you're on the right track."
       ]
     };
-    this.loadHistory();
   }
 
   private initializePersonality(): void {
@@ -277,29 +274,37 @@ class AIChatService {
     this.addToConversationMemory(userContext.userId, userMessage);
     
     // Analyze message intent and context with enhanced intelligence
-    const messageAnalysis = this.analyzeMessage(_message, userContext);
+    const messageAnalysis = this.analyzeMessage(message, userContext);
     
     // Generate contextual response with real AI capabilities
     let response: AIResponse;
     
     // Check if this is a user data analysis query
-    if (this.isUserDataAnalysisQuery(_message)) {
-      response = await this.handleUserDataAnalysis(_message, userContext);
-    } else if (this.isInjuryAssessmentQuery(_message)) {
-      response = await this.handleInjuryAssessment(_message, userContext);
-    } else if (this.isAccountManagementQuery(_message)) {
-      response = await this.handleAccountManagement(_message, userContext);
-    } else if (this.isFootballAnalysisQuery(_message)) {
-      response = await this.handleFootballAnalysis(_message, userContext);
-    } else if (this.isTacticalQuery(_message)) {
-      response = await this.handleTacticalAnalysis(_message, userContext);
-    } else if (this.isPlayerAnalysisQuery(_message)) {
-      response = await this.handlePlayerAnalysis(_message, userContext);
-    } else if (this.isTrainingQuery(_message)) {
-      response = await this.handleTrainingRecommendations(_message, userContext);
+    if (this.isUserDataAnalysisQuery(message)) {
+      response = await this.handleUserDataAnalysis(message, userContext);
+    } else if (this.isInjuryAssessmentQuery(message)) {
+      response = await this.handleInjuryAssessment(message, userContext);
+    } else if (this.isAccountManagementQuery(message)) {
+      response = await this.handleAccountManagement(message, userContext);
+    } else if (this.isFootballAnalysisQuery(message)) {
+      response = await this.handleFootballAnalysis(message, userContext);
+    } else if (this.isTacticalQuery(message)) {
+      response = await this.handleTacticalAnalysis(message, userContext);
+    } else if (this.isPlayerAnalysisQuery(message)) {
+      response = await this.handlePlayerAnalysis(message, userContext);
+    } else if (this.isTrainingQuery(message)) {
+      response = await this.handleTrainingRecommendations(message, userContext);
     } else {
-      // Use enhanced intelligent response system with fallback APIs
-      response = await this.generateEnhancedResponse(_message, userContext, messageAnalysis);
+      // Try external AI first if available
+      const openAIKey = import.meta.env?.VITE_OPENAI_API_KEY;
+
+      if (openAIKey && messageAnalysis.complexity > 0.7) {
+        const aiModel = userContext.isPremium ? 'gpt-4' : 'gpt-3.5-turbo';
+        response = await this.callEnhancedOpenAI(message, userContext, messageAnalysis, openAIKey, aiModel);
+      } else {
+        // Use enhanced intelligent response system with fallback APIs
+        response = await this.generateEnhancedResponse(message, userContext, messageAnalysis);
+      }
     }
     
     // Add bot response to conversation memory
@@ -314,27 +319,6 @@ class AIChatService {
     
     this.addToConversationMemory(userContext.userId, botMessage);
     
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        await axios.post(
-          api.aiChat.messages,
-          {
-            message: _message,
-            response: response.content,
-            context: {
-              confidence: response.confidence,
-              suggestions: response.suggestions,
-              followUpQuestions: response.followUpQuestions,
-            },
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-    } catch (error) {
-      console.error('Failed to save message:', error);
-    }
-
     return response;
   }
 
@@ -455,67 +439,54 @@ class AIChatService {
     return response;
   }
 
-  private async handleInjuryAssessment(_message: string, userContext: UserContext): Promise<AIResponse> {
+  private async handleInjuryAssessment(_message: string, _userContext: UserContext): Promise<AIResponse> {
     try {
-      const analysis = this.analyzeMessage(_message, userContext);
-      let targetPlayer: any = null;
-
-      // 1. Identify the target player
-      if (userContext.teamData?.players) {
-        const mentionedPlayerName = analysis.entities.find(entity =>
-          userContext.teamData!.players.some(p => p.name.toLowerCase() === entity.toLowerCase())
-        );
-
-        if (mentionedPlayerName) {
-          targetPlayer = userContext.teamData.players.find(p => p.name.toLowerCase() === mentionedPlayerName.toLowerCase());
-        } else if (userContext.currentContext?.playerFocus) {
-          targetPlayer = userContext.teamData.players.find(p => p.id === userContext.currentContext!.playerFocus);
+      // Create mock player health data based on user context
+      const playerHealthData = {
+        playerId: userContext.userId,
+        age: 25,
+        position: 'CM',
+        minutesPlayed: 1800,
+        trainingLoad: [75, 80, 85, 70, 90, 85, 80],
+        matchLoad: [85, 90, 80, 95, 85],
+        injuryHistory: [],
+        physicalMetrics: {
+          sprintSpeed: 28.5,
+          acceleration: 8.2,
+          workload: 75,
+          fatigueLevel: Math.random() * 10,
+          muscleStrain: Math.random() * 10,
+          flexibility: 75,
+          strength: 80,
+          endurance: 85
+        },
+        wellnessData: {
+          sleepQuality: 7 + Math.random() * 2,
+          stressLevel: 3 + Math.random() * 4,
+          soreness: 2 + Math.random() * 5,
+          energy: 6 + Math.random() * 3,
+          mood: 7 + Math.random() * 2,
+          hydration: 6 + Math.random() * 3,
+          nutrition: 6 + Math.random() * 3
         }
-      }
-
-      if (!targetPlayer) {
-        return {
-          content: "To assess injury risk, please specify which player you're asking about.",
-          confidence: 0.9,
-          suggestions: userContext.teamData?.players?.slice(0, 3).map(p => `Assess ${p.name}`) || ['Who should I assess?']
-        };
-      }
-
-      // 2. Construct PlayerHealthData from targetPlayer (with assumptions and defaults)
-      const playerHealthData: PlayerHealthData = {
-        playerId: targetPlayer.id || userContext.userId,
-        age: targetPlayer.age || 25,
-        position: targetPlayer.position || 'N/A',
-        minutesPlayed: targetPlayer.minutesPlayed || 0,
-        trainingLoad: targetPlayer.trainingLoad || [70, 70, 70, 70, 70],
-        matchLoad: targetPlayer.matchLoad || [80, 80, 80, 80, 80],
-        injuryHistory: targetPlayer.injuryHistory || [],
-        physicalMetrics: targetPlayer.physicalMetrics || {
-          sprintSpeed: 0, acceleration: 0, workload: 0, fatigueLevel: 5, muscleStrain: 5,
-          flexibility: 50, strength: 50, endurance: 50
-        },
-        wellnessData: targetPlayer.wellnessData || {
-          sleepQuality: 5, stressLevel: 5, soreness: 5, energy: 5, mood: 5, hydration: 5, nutrition: 5
-        },
-        biomechanicalData: targetPlayer.biomechanicalData
       };
       
       const assessment = await injuryAssessmentService.assessPlayer(playerHealthData);
       
       let response = '';
       
-      if (_message.toLowerCase().includes('recovery') || _message.toLowerCase().includes('rehabilitation')) {
+      if (message.toLowerCase().includes('recovery') || message.toLowerCase().includes('rehabilitation')) {
         response = this.formatRecoveryGuidance(assessment, userContext);
-      } else if (_message.toLowerCase().includes('risk') || _message.toLowerCase().includes('assessment')) {
+      } else if (message.toLowerCase().includes('risk') || message.toLowerCase().includes('assessment')) {
         response = this.formatRiskAssessment(assessment, userContext);
-      } else if (_message.toLowerCase().includes('recommendations')) {
+      } else if (message.toLowerCase().includes('recommendations')) {
         response = this.formatInjuryRecommendations(assessment, userContext);
       } else {
         response = this.formatCompleteInjuryAssessment(assessment, userContext);
       }
       
       return {
-        content: `**Assessment for ${targetPlayer.name}:**\n\n${response}`,
+        content: response,
         confidence: 0.9
       };
     } catch (error) {
@@ -1053,25 +1024,6 @@ This analysis is based on current football tactics and your query: "${originalMe
   private generateIntelligentResponse(message: string, userContext: UserContext): AIResponse {
     const lowerMessage = message.toLowerCase();
     const sport = userContext.sport;
-
-    const analysis = this.analyzeMessage(message, userContext);
-    const formations = this.knowledgeBase.get('formations') || {};
-    const mentionedFormation = analysis.entities.find(e => formations[e]);
-
-    if (mentionedFormation) {
-      const formationData = formations[mentionedFormation];
-      const content = `**${mentionedFormation} Formation Analysis:**\n\n` +
-                      `• **Strengths:** ${formationData.strengths.join(', ')}\n` +
-                      `• **Weaknesses:** ${formationData.weaknesses.join(', ')}\n` +
-                      `• **Suitable For:** ${formationData.suitableFor.join(', ')}`;
-
-      return {
-        content,
-        confidence: 90,
-        suggestions: ['Compare with other formations', 'How to coach this formation?', 'What players fit this?'],
-        followUpQuestions: ['What are the key coaching points for this formation?', 'Which players in my squad would suit this formation?']
-      };
-    }
     
     let responseCategory = 'general';
     let confidence = 88;
@@ -1454,10 +1406,10 @@ Instructions:
   }
 
   private generateFallbackResponse(_message: string, _userContext: UserContext): AIResponse {
-    console.log('Using fallback response for:', _message);
+    console.log('Using fallback response for:', message);
     
     // Determine category based on message content
-    const lowerMessage = _message.toLowerCase();
+    const lowerMessage = message.toLowerCase();
     let category = 'tactics'; // default
     
     if (lowerMessage.includes('formation') || lowerMessage.includes('lineup')) {
@@ -1474,13 +1426,13 @@ Instructions:
     
     // Get a random response from the category
     const response = this.getRandomResponse(category);
-    const personalizedResponse = this.personalizeResponse(response, _userContext, _message);
+    const personalizedResponse = this.personalizeResponse(response, userContext, message);
     
     return {
       content: personalizedResponse,
       confidence: 75, // Moderate confidence for fallback responses
-      suggestions: this.generateContextualSuggestions(_message, _userContext, category),
-      followUpQuestions: this.generateSmartFollowUpQuestions(_message, _userContext, category)
+      suggestions: this.generateContextualSuggestions(message, userContext, category),
+      followUpQuestions: this.generateSmartFollowUpQuestions(message, userContext, category)
     };
   }
 
@@ -1605,6 +1557,43 @@ Instructions:
 
 
 
+  // Method to save conversation history
+  async saveConversation(messages: ChatMessage[], userId: string): Promise<void> {
+    try {
+      const conversationData = {
+        userId,
+        messages,
+        timestamp: new Date().toISOString(),
+        sport: 'soccer' // This should come from user context
+      };
+
+      // Save to localStorage for now, implement API call later
+      const existingConversations = JSON.parse(localStorage.getItem('chat_history') || '[]');
+      existingConversations.push(conversationData);
+
+      // Keep only last 10 conversations
+      if (existingConversations.length > 10) {
+        existingConversations.splice(0, existingConversations.length - 10);
+      }
+
+      localStorage.setItem('chat_history', JSON.stringify(existingConversations));
+    } catch (error) {
+      console.error('Failed to save conversation:', error);
+    }
+  }
+
+  // Method to load conversation history
+  async loadConversationHistory(userId: string): Promise<ChatMessage[][]> {
+    try {
+      const conversations = JSON.parse(localStorage.getItem('chat_history') || '[]');
+      return conversations
+        .filter((conv: any) => conv.userId === userId)
+        .map((conv: any) => conv.messages);
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+      return [];
+    }
+  }
 
   // Method to get conversation analytics
   getConversationAnalytics(messages: ChatMessage[]): {
@@ -1874,51 +1863,6 @@ Instructions:
     if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
     
     return date.toLocaleDateString();
-  }
-
-  async loadHistory(): Promise<void> {
-    try {
-      const token = localStorage.getItem('token'); // Assuming token is in localStorage
-      if (!token) return;
-
-      const response = await axios.get(api.aiChat.history, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data?.history) {
-        const history = response.data.history.map((item: any) => ([
-          {
-            id: `user_${item.id}`,
-            type: 'user' as const,
-            content: item.message,
-            timestamp: new Date(item.created_at),
-          },
-          {
-            id: `bot_${item.id}`,
-            type: 'bot' as const,
-            content: item.response,
-            timestamp: new Date(item.created_at),
-            context: item.context,
-          },
-        ])).flat();
-
-        const userId = this.getUserIdFromToken(token);
-        if (userId) {
-          this.conversationMemory.set(userId, history);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load conversation history:', error);
-    }
-  }
-
-  private getUserIdFromToken(token: string): string | null {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.id || null;
-    } catch (error) {
-      return null;
-    }
   }
 }
 
