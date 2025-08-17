@@ -34,8 +34,8 @@ const config = {
   API_VERSION: process.env.API_VERSION || 'v1',
   APP_NAME: process.env.APP_NAME || 'StatSor Backend',
   APP_URL: process.env.APP_URL || 'http://localhost:3001',
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
-  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:3001'],
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3006',
+  ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3006', 'http://localhost:3001'],
 
   // Database - Supabase
   SUPABASE_URL: process.env.SUPABASE_URL,
