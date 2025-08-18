@@ -30,6 +30,7 @@ const chatRoutes = require('./routes/chat');
 const subscriptionsRoutes = require('./routes/subscriptions');
 const reportsRoutes = require('./routes/reports');
 const chatbotRoutes = require('./routes/chatbot');
+const teamsRoutes = require('./routes/teams');
 
 // Import security middleware (silent background protection)
 const securityMiddleware = require('./middleware/security');
@@ -224,6 +225,7 @@ class Server {
     // Mount route modules
     apiRouter.use('/auth', authRoutes);
     apiRouter.use('/players', playersRoutes);
+    apiRouter.use('/teams', teamsRoutes);
     apiRouter.use('/matches', matchesRoutes);
     apiRouter.use('/analytics', analyticsRoutes);
     apiRouter.use('/training', trainingRoutes);
