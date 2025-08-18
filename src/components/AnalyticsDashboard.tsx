@@ -25,6 +25,7 @@ import { Progress } from './ui/progress';
 import { Switch } from './ui/switch';
 import { analyticsExportService } from '../services/analyticsExportService';
 import { analyticsDataService, RealPlayerData, RealMatchData, RealTimeMatchData } from '../services/analyticsDataService';
+import { useAuth } from '../contexts/AuthContext';
 
 
 
@@ -35,9 +36,7 @@ interface AnalyticsDashboardProps {
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ className }) => {
-  const generatePlayerData = (): RealPlayerData[] => [];
-  const generateMatchData = (): RealMatchData[] => [];
-  const generateRealTimeData = (): RealTimeMatchData | null => null;
+  const { user } = useAuth();
   const [playerData, setPlayerData] = useState<RealPlayerData[]>([]);
   const [matchData, setMatchData] = useState<RealMatchData[]>([]);
   const [realTimeData, setRealTimeData] = useState<RealTimeMatchData | null>(null);
@@ -57,41 +56,44 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
   // Load real data on component mount
   useEffect(() => {
     const loadInitialData = async () => {
-      setDataLoading(true);
-      try {
-        const [players, matches, realTime] = await Promise.all([
-          analyticsDataService.getPlayerData(),
-          analyticsDataService.getMatchData(),
-          analyticsDataService.getRealTimeData()
-        ]);
-        setPlayerData(players);
-        setMatchData(matches);
-        setRealTimeData(realTime);
-      } catch (error) {
-        console.error('Failed to load analytics data:', error);
-        // Fallback to empty arrays/null on error
-        setPlayerData([]);
-        setMatchData([]);
-        setRealTimeData(null);
-      } finally {
+      if (user && user.teamId) {
+        setDataLoading(true);
+        try {
+          const [players, matches, realTime] = await Promise.all([
+            analyticsDataService.getPlayerData(user.teamId),
+            analyticsDataService.getMatchData(user.teamId),
+            analyticsDataService.getRealTimeData()
+          ]);
+          setPlayerData(players);
+          setMatchData(matches);
+          setRealTimeData(realTime);
+        } catch (error) {
+          console.error('Failed to load analytics data:', error);
+          setPlayerData([]);
+          setMatchData([]);
+          setRealTimeData(null);
+        } finally {
+          setDataLoading(false);
+        }
+      } else {
         setDataLoading(false);
       }
     };
 
     loadInitialData();
-  }, []);
+  }, [user]);
 
   // Real-time data updates
   useEffect(() => {
-    if (!autoRefresh || dataLoading) return;
+    if (!autoRefresh || dataLoading || !user || !user.teamId) return;
 
     const interval = setInterval(async () => {
       setIsProcessing(true);
       
       try {
         const [players, matches, realTime] = await Promise.all([
-          analyticsDataService.getPlayerData(),
-          analyticsDataService.getMatchData(),
+          analyticsDataService.getPlayerData(user.teamId!),
+          analyticsDataService.getMatchData(user.teamId!),
           analyticsDataService.getRealTimeData()
         ]);
         setPlayerData(players);
@@ -105,7 +107,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
     }, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(interval);
-  }, [autoRefresh, dataLoading]);
+  }, [autoRefresh, dataLoading, user]);
 
   // Filtered and sorted data
   const filteredPlayers = useMemo(() => {
@@ -314,23 +316,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               Export Matches
             </Button>
 
-            <Button 
-              onClick={() => {
-                setIsProcessing(true);
-                setTimeout(() => {
-                  setPlayerData(generatePlayerData());
-                  setMatchData(generateMatchData());
-                  setRealTimeData(generateRealTimeData());
-                  setIsProcessing(false);
-                }, 1000);
-              }}
-              variant="outline" 
-              size="sm"
-              disabled={isProcessing}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isProcessing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
           </div>
         </div>
 
