@@ -103,7 +103,8 @@ export const authAPI = {
       created_at: new Date().toISOString(),
       location: data.location || '',
       sport: undefined,
-      sportSelected: false
+      sportSelected: false,
+      teamId: 'a1b2c3d4-e5f6-7890-1234-567890abcdef' // Hardcoded teamId
     };
     
     const mockToken = `mock_token_${Date.now()}`;
@@ -153,7 +154,8 @@ export const authAPI = {
       created_at: new Date().toISOString(),
       location: '',
       sport: undefined,
-      sportSelected: false
+      sportSelected: false,
+      teamId: 'a1b2c3d4-e5f6-7890-1234-567890abcdef' // Hardcoded teamId
     };
     
     const mockToken = `mock_token_${Date.now()}`;

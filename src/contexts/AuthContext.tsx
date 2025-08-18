@@ -21,6 +21,7 @@ interface UserProfile {
   display_name?: string
   phone?: string
   bio?: string
+  teamId?: string;
 }
 
 interface AuthContextType {

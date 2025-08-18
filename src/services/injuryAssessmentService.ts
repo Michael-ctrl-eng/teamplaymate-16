@@ -644,40 +644,72 @@ class InjuryAssessmentService {
     };
   }
 
-  async assessTeam(teamId: string): Promise<{
-    teamId: string;
-    overallRisk: number;
-    riskDistribution: Record<InjuryAssessment['riskLevel'], number>;
-    highRiskPlayers: string[];
+  async assessTeam(teamHealthData: PlayerHealthData[]): Promise<{
+    overallTeamRisk: number;
+    mostCommonRiskFactor: string;
+    highRiskPlayers: { name: string; risk: number }[];
     recommendations: Recommendation[];
-    alerts: Alert[];
   }> {
-    // This would typically fetch all team players and assess them
-    // For now, return a mock team assessment
-    return {
-      teamId,
-      overallRisk: 35,
-      riskDistribution: {
-        low: 60,
-        medium: 25,
-        high: 12,
-        critical: 3
+    if (teamHealthData.length === 0) {
+      return {
+        overallTeamRisk: 0,
+        mostCommonRiskFactor: 'N/A',
+        highRiskPlayers: [],
+        recommendations: [],
+      };
+    }
+
+    const individualAssessments = await Promise.all(
+      teamHealthData.map(playerData => this.assessPlayer(playerData))
+    );
+
+    const overallTeamRisk = individualAssessments.reduce((sum, assessment) => sum + assessment.overallRisk, 0) / individualAssessments.length;
+
+    const riskFactorCounts = individualAssessments
+      .flatMap(assessment => Object.keys(assessment.riskFactors))
+      .reduce((counts, factor) => {
+        counts[factor] = (counts[factor] || 0) + 1;
+        return counts;
+      }, {} as Record<string, number>);
+
+    const mostCommonRiskFactor = Object.keys(riskFactorCounts).reduce((a, b) =>
+      riskFactorCounts[a] > riskFactorCounts[b] ? a : b
+    );
+
+    const highRiskPlayers = individualAssessments
+      .filter(assessment => assessment.riskLevel === 'high' || assessment.riskLevel === 'critical')
+      .map(assessment => ({ name: assessment.playerName, risk: assessment.overallRisk }));
+
+    const recommendations: Recommendation[] = [
+      {
+        id: 'team-load-management',
+        type: 'modification',
+        priority: 'high',
+        title: 'Implement Team-Wide Load Management',
+        description: 'Monitor acute-to-chronic workload ratios for all players and adjust training intensity accordingly.',
+        duration: 'Ongoing',
+        frequency: 'Weekly',
+        expectedOutcome: 'Reduced overall team injury risk',
+        category: 'training',
       },
-      highRiskPlayers: ['player-1', 'player-3'],
-      recommendations: [
-        {
-          id: 'team-1',
-          type: 'prevention',
-          priority: 'high',
-          title: 'Team Load Management',
-          description: 'Implement rotation policy to manage player workloads.',
-          duration: '2 weeks',
-          frequency: 'Ongoing',
-          expectedOutcome: 'Reduced team injury risk',
-          category: 'training'
-        }
-      ],
-      alerts: []
+      {
+        id: 'team-recovery-protocol',
+        type: 'prevention',
+        priority: 'medium',
+        title: 'Standardize Recovery Protocols',
+        description: 'Ensure all players follow a consistent post-training and post-match recovery routine.',
+        duration: 'Ongoing',
+        frequency: 'Daily',
+        expectedOutcome: 'Improved team recovery and readiness',
+        category: 'recovery',
+      },
+    ];
+
+    return {
+      overallTeamRisk,
+      mostCommonRiskFactor,
+      highRiskPlayers,
+      recommendations,
     };
   }
 }

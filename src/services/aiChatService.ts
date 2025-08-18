@@ -2,6 +2,7 @@ import { footballAnalysisService } from './footballAnalysisService';
 import { userDataAnalysisService } from './userDataAnalysisService';
 import { injuryAssessmentService } from './injuryAssessmentService';
 import { accountManagementService } from './accountManagementService';
+import axios from 'axios';
 
 interface ChatMessage {
   id: string;
@@ -144,11 +145,47 @@ class AIChatService {
     }
   }
 
-  async sendMessage(message: string, userContext: UserContext): Promise<AIResponse> {
+  private async fetchUserContext(userId: string, teamId: string): Promise<UserContext> {
+    try {
+      const response = await axios.post('/api/v1/chatbot/context', { userId, teamId });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch user context:', error);
+      // Return a default/fallback context
+      return {
+        sport: 'soccer',
+        userId: userId,
+        teamData: {
+          id: teamId,
+          name: 'Your Team',
+          players: [],
+          recentMatches: [],
+          upcomingMatches: [],
+          currentSeason: {},
+          teamStats: {},
+        },
+        userPreferences: {
+          language: 'en',
+          experience: 'intermediate',
+          coachingStyle: 'balanced',
+          preferredFormations: [],
+          focusAreas: [],
+        },
+        sessionHistory: [],
+        currentContext: {},
+        isPremium: false,
+      };
+    }
+  }
+
+  async sendMessage(message: string, userId: string, teamId: string): Promise<AIResponse> {
     const startTime = Date.now();
-    const cacheKey = this.generateCacheKey(message, userContext);
     
     try {
+      // Fetch the latest user context
+      const userContext = await this.fetchUserContext(userId, teamId);
+      const cacheKey = this.generateCacheKey(message, userContext);
+
       // Rate limiting check
       if (!this.checkRateLimit(userContext.userId)) {
         throw new Error('Rate limit exceeded. Please wait before sending more messages.');
@@ -176,8 +213,13 @@ class AIChatService {
       return response;
     } catch (error) {
       console.error('AI Chat error:', error);
-      const fallbackResponse = this.generateFallbackResponse(message, userContext);
-      this.recordPerformance(userContext.userId, Date.now() - startTime, fallbackResponse.confidence, false);
+      // We need a minimal context for the fallback response
+      const fallbackContext: UserContext = {
+        sport: 'soccer',
+        userId: userId,
+      };
+      const fallbackResponse = this.generateFallbackResponse(message, fallbackContext);
+      this.recordPerformance(userId, Date.t_startTime, fallbackResponse.confidence, false);
       return fallbackResponse;
     }
   }
@@ -439,67 +481,106 @@ class AIChatService {
     return response;
   }
 
-  private async handleInjuryAssessment(_message: string, _userContext: UserContext): Promise<AIResponse> {
+  private async handleInjuryAssessment(message: string, userContext: UserContext): Promise<AIResponse> {
     try {
-      // Create mock player health data based on user context
-      const playerHealthData = {
-        playerId: userContext.userId,
-        age: 25,
-        position: 'CM',
-        minutesPlayed: 1800,
-        trainingLoad: [75, 80, 85, 70, 90, 85, 80],
-        matchLoad: [85, 90, 80, 95, 85],
-        injuryHistory: [],
-        physicalMetrics: {
-          sprintSpeed: 28.5,
-          acceleration: 8.2,
-          workload: 75,
-          fatigueLevel: Math.random() * 10,
-          muscleStrain: Math.random() * 10,
-          flexibility: 75,
-          strength: 80,
-          endurance: 85
-        },
-        wellnessData: {
-          sleepQuality: 7 + Math.random() * 2,
-          stressLevel: 3 + Math.random() * 4,
-          soreness: 2 + Math.random() * 5,
-          energy: 6 + Math.random() * 3,
-          mood: 7 + Math.random() * 2,
-          hydration: 6 + Math.random() * 3,
-          nutrition: 6 + Math.random() * 3
-        }
-      };
-      
-      const assessment = await injuryAssessmentService.assessPlayer(playerHealthData);
-      
-      let response = '';
-      
-      if (message.toLowerCase().includes('recovery') || message.toLowerCase().includes('rehabilitation')) {
-        response = this.formatRecoveryGuidance(assessment, userContext);
-      } else if (message.toLowerCase().includes('risk') || message.toLowerCase().includes('assessment')) {
-        response = this.formatRiskAssessment(assessment, userContext);
-      } else if (message.toLowerCase().includes('recommendations')) {
-        response = this.formatInjuryRecommendations(assessment, userContext);
+      const mentionedPlayer = this.findMentionedPlayer(message, userContext.teamData?.players || []);
+
+      if (mentionedPlayer) {
+        // Individual player assessment
+        const playerHealthData = this.createPlayerHealthData(mentionedPlayer);
+        const assessment = await injuryAssessmentService.assessPlayer(playerHealthData);
+        const response = this.formatIndividualInjuryAssessment(assessment, mentionedPlayer, message);
+        return { content: response, confidence: 0.9 };
       } else {
-        response = this.formatCompleteInjuryAssessment(assessment, userContext);
+        // Team-level injury overview
+        const teamHealthData = (userContext.teamData?.players || []).map(this.createPlayerHealthData);
+        const teamAssessment = await injuryAssessmentService.assessTeam(teamHealthData);
+        const response = this.formatTeamInjuryOverview(teamAssessment, userContext);
+        return { content: response, confidence: 0.85 };
       }
-      
-      return {
-        content: response,
-        confidence: 0.9
-      };
     } catch (error) {
       console.error('Error in injury assessment:', error);
       return {
-        content: 'I\'m having trouble accessing your health data right now. Please ensure you have recent fitness and training data recorded, or consult with your team\'s medical staff for a comprehensive assessment.',
+        content: 'I\'m having trouble accessing health data right now. Please ensure you have recent fitness and training data recorded, or consult with your team\'s medical staff for a comprehensive assessment.',
         confidence: 0.3
       };
     }
   }
 
-  private formatRiskAssessment(assessment: any, userContext: UserContext): string {
-    let response = `## Injury Risk Assessment\n\n`;
+  private findMentionedPlayer(message: string, players: any[]): any | null {
+    if (!players || players.length === 0) return null;
+    const lowerMessage = message.toLowerCase();
+    return players.find(p => lowerMessage.includes(p.name.toLowerCase()));
+  }
+
+  private createPlayerHealthData(player: any): any {
+    // Convert player stats into the format expected by the injury assessment service
+    return {
+      playerId: player.id,
+      age: player.stats?.age || 25,
+      position: player.position || 'N/A',
+      minutesPlayed: player.stats?.minutes_played || 0,
+      trainingLoad: player.stats?.training_load || [],
+      matchLoad: player.stats?.match_load || [],
+      injuryHistory: player.stats?.injury_history || [],
+      physicalMetrics: {
+        sprintSpeed: player.stats?.sprint_speed || 0,
+        acceleration: player.stats?.acceleration || 0,
+        workload: player.stats?.workload || 0,
+        fatigueLevel: player.stats?.fatigue_level || 0,
+        muscleStrain: player.stats?.muscle_strain || 0,
+        flexibility: player.stats?.flexibility || 0,
+        strength: player.stats?.strength || 0,
+        endurance: player.stats?.endurance || 0,
+      },
+      wellnessData: {
+        sleepQuality: player.stats?.sleep_quality || 0,
+        stressLevel: player.stats?.stress_level || 0,
+        soreness: player.stats?.soreness || 0,
+        energy: player.stats?.energy || 0,
+        mood: player.stats?.mood || 0,
+        hydration: player.stats?.hydration || 0,
+        nutrition: player.stats?.nutrition || 0,
+      }
+    };
+  }
+
+  private formatIndividualInjuryAssessment(assessment: any, player: any, message: string): string {
+    if (message.toLowerCase().includes('recovery') || message.toLowerCase().includes('rehabilitation')) {
+      return this.formatRecoveryGuidance(assessment, player.name);
+    } else if (message.toLowerCase().includes('risk') || message.toLowerCase().includes('assessment')) {
+      return this.formatRiskAssessment(assessment, player.name);
+    } else if (message.toLowerCase().includes('recommendations')) {
+      return this.formatInjuryRecommendations(assessment, player.name);
+    } else {
+      return this.formatCompleteInjuryAssessment(assessment, player.name);
+    }
+  }
+
+  private formatTeamInjuryOverview(assessment: any, userContext: UserContext): string {
+    let response = `## Team Injury Overview for ${userContext.teamData?.name}\n\n`;
+    response += `**Overall Team Risk:** ${assessment.overallTeamRisk.toFixed(1)}%\n`;
+    response += `**Most Common Risk Factor:** ${assessment.mostCommonRiskFactor}\n\n`;
+
+    response += `**Players at High Risk:**\n`;
+    if (assessment.highRiskPlayers.length > 0) {
+      assessment.highRiskPlayers.forEach((p: any) => {
+        response += `• **${p.name}** (Risk: ${p.risk.toFixed(1)}%)\n`;
+      });
+    } else {
+      response += "No players are currently at high risk. Great job on load management!\n";
+    }
+
+    response += `\n**Key Recommendations:**\n`;
+    assessment.recommendations.slice(0, 3).forEach((rec: any, index: number) => {
+      response += `${index + 1}. ${rec.title}\n`;
+    });
+
+    return response;
+  }
+
+  private formatRiskAssessment(assessment: any, playerName: string): string {
+    let response = `## Injury Risk Assessment for ${playerName}\n\n`;
     
     response += `**Overall Risk Level: ${assessment.riskLevel.toUpperCase()}** (${assessment.overallRisk.toFixed(1)}%)\n\n`;
     
@@ -525,8 +606,8 @@ class AIChatService {
     return response;
   }
 
-  private formatRecoveryGuidance(assessment: any, userContext: UserContext): string {
-    let response = `## Recovery & Rehabilitation Guidance\n\n`;
+  private formatRecoveryGuidance(assessment: any, playerName: string): string {
+    let response = `## Recovery & Rehabilitation Guidance for ${playerName}\n\n`;
     
     if (assessment.recoveryPlan) {
       const plan = assessment.recoveryPlan;
@@ -556,8 +637,8 @@ class AIChatService {
     return response;
   }
 
-  private formatInjuryRecommendations(assessment: any, userContext: UserContext): string {
-    let response = `## Injury Prevention Recommendations\n\n`;
+  private formatInjuryRecommendations(assessment: any, playerName: string): string {
+    let response = `## Injury Prevention Recommendations for ${playerName}\n\n`;
     
     assessment.recommendations.slice(0, 4).forEach((rec: any, index: number) => {
       const priorityEmoji = rec.priority === 'urgent' ? '🚨' : rec.priority === 'high' ? '⚠️' : '💡';
@@ -571,8 +652,8 @@ class AIChatService {
     return response;
   }
 
-  private formatCompleteInjuryAssessment(assessment: any, userContext: UserContext): string {
-    let response = `## Complete Injury & Health Assessment\n\n`;
+  private formatCompleteInjuryAssessment(assessment: any, playerName: string): string {
+    let response = `## Complete Injury & Health Assessment for ${playerName}\n\n`;
     
     // Risk overview
     response += `**Risk Level: ${assessment.riskLevel.toUpperCase()}** (${assessment.overallRisk.toFixed(1)}%)\n\n`;

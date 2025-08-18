@@ -178,31 +178,12 @@ Ask me anything about tactics, formations, or strategic decisions!`,
     
     try {
       // Enhanced user context for better responses
-      const userContext = {
-        userId: user?.id || 'current_user',
-        sport: sport || 'soccer' as 'soccer' | 'futsal',
-        teamData: {
-          name: user?.teamName || 'User Team',
-          players: [],
-          recentMatches: [],
-          upcomingMatches: [],
-          teamStats: {}
-        },
-        userPreferences: {
-          language: 'en',
-          experience: 'intermediate',
-          coachingStyle: 'balanced',
-          preferredFormations: ['4-3-3', '4-4-2'],
-          focusAreas: ['tactics', 'fitness']
-        },
-        sessionHistory: messages.slice(-10), // Last 10 messages for context
-        currentContext: {
-          training: false,
-          activeMatch: false
-        }
-      };
+      if (!user || !user.teamId) {
+        toast.error("User or team not found. Please log in again.");
+        return;
+      }
 
-      const aiResponse = await aiChatService.sendMessage(message, userContext as any);
+      const aiResponse = await aiChatService.sendMessage(message, user.id, user.teamId);
       
       const botResponse = formatAIResponse(aiResponse, message);
       setMessages(prev => [...prev, botResponse]);
