@@ -44,7 +44,6 @@ import {
 
 const DataManagementSection: React.FC = () => {
   const { theme, isHighContrast } = useTheme();
-  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState('players');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -134,7 +133,7 @@ const DataManagementSection: React.FC = () => {
     }
   };
 
-  const PlayerForm: React.FC<{ player?: Player; onSave: (player: Player) => void; onCancel: () => void }> = ({ player, onSave, onCancel }) => {
+  const PlayerForm: React.FC<{ player: Player | null; onSave: (player: Player) => Promise<void>; onCancel: () => void }> = ({ player, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Player>(player || {
       id: '',
       name: '',
@@ -155,7 +154,8 @@ const DataManagementSection: React.FC = () => {
       notes: '',
       skills: { technical: 50, physical: 50, tactical: 50, mental: 50 },
       medicalClearance: true,
-      lastMedicalCheck: new Date().toISOString().split('T')[0]
+      lastMedicalCheck: new Date().toISOString().split('T')[0],
+      photo: ''
     });
 
     return (
@@ -443,7 +443,7 @@ const DataManagementSection: React.FC = () => {
                 {/* Add/Edit Player Form */}
                 {(showAddForm || (selectedPlayer && isEditing)) && (
                   <PlayerForm
-                    player={selectedPlayer || undefined}
+                    player={selectedPlayer}
                     onSave={handleSavePlayer}
                     onCancel={() => {
                       setShowAddForm(false);

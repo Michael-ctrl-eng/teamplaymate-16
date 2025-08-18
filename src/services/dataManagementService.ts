@@ -6,6 +6,7 @@ interface Player {
   position: string;
   age: number;
   nationality: string;
+  photo?: string;
   email: string;
   phone: string;
   address: string;

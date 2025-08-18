@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { CalendarIcon, Upload, X } from 'lucide-react';
+import { CalendarIcon, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 
@@ -15,12 +15,12 @@ interface Player {
   id: string;
   number: number;
   name: string;
-  nickname?: string;
+  nickname: string | undefined;
   position: string;
   age: number;
   nationality: string;
-  height?: number | undefined;
-  weight?: number | undefined;
+  height: number | undefined;
+  weight: number | undefined;
   secondaryPositions?: string[];
   dominantFoot: string;
   birthDate: Date;
@@ -42,7 +42,7 @@ interface Player {
   duelsLost: number;
   crosses: number;
   saves?: number;
-  photo?: string;
+  photo: string | undefined;
   shotMap?: { [key: string]: number };
 }
 
@@ -142,6 +142,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ isOpen, onClose, onSave }
       duelsWon: 0,
       duelsLost: 0,
       crosses: 0,
+      saves: 0,
       photo: formData.photo || undefined,
       shotMap: { 'top-left': 0, 'top-center': 0, 'top-right': 0, 'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 }
     };

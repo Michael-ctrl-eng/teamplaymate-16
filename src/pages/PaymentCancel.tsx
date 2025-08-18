@@ -6,10 +6,17 @@ import { Button } from '../components/ui/button';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 
+import { useEffect } from 'react';
+
 const PaymentCancel: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { theme } = useTheme();
+
+  useEffect(() => {
+    // Clear the pending subscription ID from local storage
+    localStorage.removeItem('pendingSubscriptionId');
+  }, []);
 
   return (
     <div className={`min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ${

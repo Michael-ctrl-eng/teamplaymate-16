@@ -17,31 +17,29 @@ const PaymentSuccess: React.FC = () => {
   const [paymentVerified, setPaymentVerified] = useState(false);
 
   useEffect(() => {
-    const verifyPayment = async () => {
+    const confirm = async () => {
+      setVerifying(true);
       try {
-        const paymentId = searchParams.get('paymentId');
-        const payerId = searchParams.get('PayerID');
-        
-        if (paymentId) {
-          // Verify payment with PayPal service
-          const verified = await paypalService.verifyPayment(paymentId);
-          
-          if (verified) {
-            setPaymentVerified(true);
-            toast.success(language === 'en' ? 'Payment verified successfully!' : '¡Pago verificado exitosamente!');
-          } else {
-            toast.error(language === 'en' ? 'Payment verification failed' : 'Verificación de pago fallida');
-          }
+        const subscriptionId = localStorage.getItem('pendingSubscriptionId');
+        const token = searchParams.get('token'); // PayPal returns order ID as 'token'
+
+        if (subscriptionId && token) {
+          await paypalService.confirmSubscription(subscriptionId, token);
+          setPaymentVerified(true);
+          localStorage.removeItem('pendingSubscriptionId');
+        } else {
+          toast.error(language === 'en' ? 'Could not verify payment. Missing information.' : 'No se pudo verificar el pago. Falta información.');
+          setPaymentVerified(false);
         }
       } catch (error) {
-        console.error('Payment verification error:', error);
-        toast.error(language === 'en' ? 'Error verifying payment' : 'Error al verificar el pago');
+        console.error('Payment confirmation error:', error);
+        setPaymentVerified(false);
       } finally {
         setVerifying(false);
       }
     };
 
-    verifyPayment();
+    confirm();
   }, [searchParams, language]);
 
   return (

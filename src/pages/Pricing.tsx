@@ -45,57 +45,36 @@ const Pricing: React.FC = () => {
       return;
     }
 
-    const plan = plans.find(p => p.id === planId);
-    if (!plan) {
-      toast.error(language === 'en' ? 'Plan not found' : 'Plan no encontrado');
-      return;
-    }
-
     setPaypalLoading(true);
     setPaymentStatus('processing');
 
     try {
-      // Check if user already has this plan
-      const hasActive = paypalService.hasActiveSubscription(user.email, planId);
-      if (hasActive) {
-        toast.error(language === 'en' ? 'You already have an active subscription for this plan' : 'Ya tienes una suscripción activa para este plan');
-        setPaymentStatus('failed');
-        return;
-      }
-
-      // Check payment attempts
-      const attempts = paypalService.getPaymentAttempts(user.email, planId);
-      if (attempts > 3) {
-        toast.error(language === 'en' ? 'Too many payment attempts. Please try again later.' : 'Demasiados intentos de pago. Por favor, inténtalo más tarde.');
-        setPaymentStatus('failed');
-        return;
-      }
-
-      const amount = billingInterval === 'yearly' ? plan.price : Math.round(plan.price / 12);
-      
-      const paymentData = {
-        planId,
-        planName: plan.name,
-        amount,
-        currency: 'EUR',
-        billingInterval,
-        userEmail: user.email,
-        userId: user.id
+      const payload = {
+        plan_id: planId,
+        payment_method: 'paypal',
+        billing_cycle: billingInterval,
       };
 
-      const response = await paypalService.createPayment(paymentData);
+      const response = await paypalService.createSubscription(payload);
 
-      if (response.success && response.redirectUrl) {
-        // Redirect to PayPal
-        window.location.href = response.redirectUrl;
+      if (response && response.payment_data && response.payment_data.links) {
+        const approvalLink = response.payment_data.links.find((link: any) => link.rel === 'approve');
+        if (approvalLink) {
+          // Store subscription id for confirmation
+          localStorage.setItem('pendingSubscriptionId', response.subscription_id);
+          window.location.href = approvalLink.href;
+        } else {
+          toast.error(language === 'en' ? 'Could not find PayPal approval link.' : 'No se pudo encontrar el enlace de aprobación de PayPal.');
+          setPaymentStatus('failed');
+        }
       } else {
-        toast.error(response.error || (language === 'en' ? 'Payment failed' : 'Pago fallido'));
+        toast.error(language === 'en' ? 'Payment failed' : 'Pago fallido');
         setPaymentStatus('failed');
       }
 
     } catch (error) {
       console.error('PayPal payment error:', error);
-      toast.error(language === 'en' ? 'Payment service error' : 'Error en el servicio de pago');
+      // The error is already handled by the apiClient interceptor
       setPaymentStatus('failed');
     } finally {
       setPaypalLoading(false);

@@ -23,16 +23,14 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/lovable-uploads/01b5bf86-f2e7-42cd-9465-4d0bb347d2ea.png',
+            src: 'favicon.ico',
             sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
+            type: 'image/x-icon'
           },
           {
-            src: '/lovable-uploads/01b5bf86-f2e7-42cd-9465-4d0bb347d2ea.png',
+            src: 'og-image.png',
             sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
+            type: 'image/png'
           }
         ]
       },

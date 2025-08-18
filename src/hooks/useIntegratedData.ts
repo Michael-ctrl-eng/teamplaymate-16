@@ -10,6 +10,7 @@ interface UseIntegratedDataReturn {
   refreshData: () => Promise<void>;
   updatePlayerData: (playerId: string, updates: Partial<Player>) => Promise<boolean>;
   getPlayerStats: (playerId: string) => Promise<any>;
+  setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
 
 /**
@@ -255,7 +256,8 @@ export const useIntegratedData = (): UseIntegratedDataReturn => {
     error,
     refreshData,
     updatePlayerData,
-    getPlayerStats
+    getPlayerStats,
+    setUserData
   };
 };
 

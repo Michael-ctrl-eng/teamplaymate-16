@@ -103,14 +103,18 @@ const createSubscriptionSchema = Joi.object({
     payment_method: Joi.string().valid('paypal').required(),
     billing_cycle: Joi.string().valid('monthly', 'yearly').default('monthly'),
     coupon_code: Joi.string().optional()
-  })
+  }).required(),
+  query: Joi.object(),
+  params: Joi.object()
 });
 
 const updatePaymentMethodSchema = Joi.object({
   body: Joi.object({
     payment_method_id: Joi.string().required(),
     provider: Joi.string().valid('paypal').required()
-  })
+  }).required(),
+  query: Joi.object(),
+  params: Joi.object()
 });
 
 // Note: Stripe validation schemas removed - using PayPal only
@@ -118,7 +122,9 @@ const updatePaymentMethodSchema = Joi.object({
 const applyCouponSchema = Joi.object({
   body: Joi.object({
     coupon_code: Joi.string().required()
-  })
+  }).required(),
+  query: Joi.object(),
+  params: Joi.object()
 });
 
 // Helper functions
@@ -312,7 +318,7 @@ router.post('/create',
 router.post('/confirm',
   authenticateToken,
   asyncHandler(async (req, res) => {
-    const { subscription_id, payment_intent_id, paypal_order_id } = req.body;
+    const { subscription_id, paypal_order_id } = req.body;
 
     const subscription = await db.findById('subscriptions', subscription_id);
     if (!subscription || subscription.user_id !== req.user.id) {
@@ -325,18 +331,19 @@ router.post('/confirm',
 
     let paymentConfirmed = false;
 
-    // Only PayPal payment confirmation supported
     if (subscription.payment_provider === 'paypal' && paypal_order_id) {
       try {
-        const request = new paypal.orders.OrdersCaptureRequest(paypal_order_id);
-        const capture = await paypalClient.execute(request);
-        paymentConfirmed = capture.result.status === 'COMPLETED';
+        const capture = await payPalService.captureOrder(paypal_order_id);
+        if (capture.status === 'COMPLETED') {
+          paymentConfirmed = true;
+        }
       } catch (error) {
         paymentLogger.error('PayPal payment confirmation failed', {
           subscription_id,
           paypal_order_id,
           error: error.message
         });
+        throw new PaymentError('PayPal payment confirmation failed');
       }
     }
 
@@ -604,7 +611,7 @@ router.post('/apply-coupon',
 // @access  Private
 router.get('/usage',
   authenticateToken,
-  requireSubscription,
+  requireSubscription(),
   asyncHandler(async (req, res) => {
     const subscription = await db.query(`
       SELECT * FROM subscriptions 

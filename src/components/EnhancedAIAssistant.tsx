@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { aiChatService } from '../services/aiChatService';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Progress } from './ui/progress';
-import { Textarea } from './ui/textarea';
+// import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import {
@@ -15,11 +15,6 @@ import {
   Send,
   Users,
   Plus,
-  Edit,
-  Trash2,
-  Search,
-  Filter,
-  Database,
   BarChart3,
   Target,
   MessageSquare,
@@ -27,64 +22,27 @@ import {
   Sparkles,
   CheckCircle,
   AlertTriangle,
-  Info,
   Settings,
-  Download,
-  Upload,
   RefreshCw,
-  Mic,
-  MicOff,
-  FileText,
-  Camera,
-  Video,
-  Calendar,
-  Clock,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Heart,
-  Shield,
-  Award,
-  MapPin,
-  Thermometer,
-  Wind,
-  Sun,
-  Moon,
-  Star,
-  Bookmark,
-  Share2,
   Copy,
-  Eye,
-  EyeOff,
-  Volume2,
-  VolumeX,
   Maximize2,
   Minimize2,
-  RotateCcw,
-  Save,
-  FileImage,
-  FileVideo,
-  Headphones,
-  Gamepad2,
-  Trophy,
-  Medal,
-  Flag,
-  Compass,
-  Navigation,
-  Radar,
-  X
+  X,
+  TrendingUp,
+  Shield,
+  Activity
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIntegratedData } from '../hooks/useIntegratedData';
-import { useSubscription } from '../contexts/SubscriptionContext';
+// import { useSubscription } from '../contexts/SubscriptionContext';
 
 interface ChatMessage {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  type?: 'text' | 'action' | 'data' | 'error' | 'success' | 'analysis' | 'prediction' | 'warning' | 'file' | 'voice';
+  type?: 'text' | 'action' | 'data' | 'error' | 'success' | 'analysis' | 'prediction' | 'warning' | 'file';
   metadata?: any;
   attachments?: FileAttachment[];
   confidence?: number;
@@ -99,6 +57,8 @@ interface FileAttachment {
   url: string;
   thumbnail?: string;
 }
+
+type Message = ChatMessage;
 
 interface Player {
   id: string;
@@ -197,6 +157,8 @@ interface Exercise {
 }
 
 interface UserData {
+  sport: 'soccer' | 'futsal';
+  teamName: string;
   players: Player[];
   teamStats: TeamStats;
   recentMatches: Match[];
@@ -332,19 +294,21 @@ export const EnhancedAIAssistant: React.FC = () => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [autoAnalysis] = useState(true);
-  const [realTimeUpdates] = useState(true);
+  const [autoAnalysis, setAutoAnalysis] = useState(true);
+  const [realTimeUpdates, setRealTimeUpdates] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('chat');
+  const [confidenceThreshold, setConfidenceThreshold] = useState([80]);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognition = useRef<any>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Use integrated data from Data Management system
-  const { userData, isLoading: dataLoading, error: dataError, refreshData, updatePlayerData, getPlayerStats } = useIntegratedData();
+  const { userData, isLoading: dataLoading, error: dataError, refreshData, setUserData } = useIntegratedData();
   
   // Fallback userData for when data is loading
   const fallbackUserData: UserData = {
@@ -569,31 +533,6 @@ export const EnhancedAIAssistant: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognition.current = new SpeechRecognition();
-      recognition.current.continuous = false;
-      recognition.current.interimResults = false;
-      recognition.current.lang = 'en-US';
-      
-      recognition.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputMessage(transcript);
-        setIsListening(false);
-      };
-      
-      recognition.current.onerror = () => {
-        setIsListening(false);
-      };
-      
-      recognition.current.onend = () => {
-        setIsListening(false);
-      };
-    }
-  }, []);
-
   // Use integrated data or fallback
   const currentUserData = userData || fallbackUserData;
 
@@ -661,25 +600,11 @@ export const EnhancedAIAssistant: React.FC = () => {
     // Continue with fallback data instead of showing error to user
   }
 
-  const startVoiceRecognition = () => {
-    if (recognition.current && voiceEnabled) {
-      setIsListening(true);
-      recognition.current.start();
-    }
-  };
-
-  const stopVoiceRecognition = () => {
-    if (recognition.current) {
-      recognition.current.stop();
-      setIsListening(false);
-    }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    setSelectedFiles(prev => [...prev, ...files]);
+  // const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const files = Array.from(event.target.files || []);
+  //   setSelectedFiles(prev => [...prev, ...files]);
     
-    files.forEach(file => {
+  //   files.forEach(file => {
       const fileMessage: ChatMessage = {
         id: Date.now().toString() + Math.random(),
         content: `Uploaded file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
@@ -739,7 +664,7 @@ export const EnhancedAIAssistant: React.FC = () => {
         teamData: {
           name: currentUserData.teamName,
           players: currentUserData.players,
-          recentMatches: currentUserData.matches || [],
+          recentMatches: currentUserData.recentMatches || [],
           teamStats: currentUserData.teamStats
         },
         userPreferences: {
@@ -781,9 +706,9 @@ export const EnhancedAIAssistant: React.FC = () => {
     return Math.min(Object.values(factors).reduce((a, b) => a + b, 0) + 30, 100);
   };
 
-  const executeAdvancedCommand = async (category: string, message: string, confidence: number): Promise<ChatMessage> => {
-    switch (category) {
-      case 'playerManagement':
+  // const executeAdvancedCommand = async (category: string, message: string, confidence: number): Promise<ChatMessage> => {
+  //   switch (category) {
+  //     case 'playerManagement':
         return handleAdvancedPlayerManagement(message, confidence);
       case 'teamAnalysis':
         return handleAdvancedTeamAnalysis(confidence);
@@ -1184,11 +1109,11 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handleAddPlayer = async (message: string): Promise<ChatMessage> => {
-    // Extract player details from message using AI parsing
-    const playerData = parsePlayerFromMessage(message);
+  // const handleAddPlayer = async (message: string): Promise<ChatMessage> => {
+  //   // Extract player details from message using AI parsing
+  //   const playerData = parsePlayerFromMessage(message);
     
-    if (playerData) {
+  //   if (playerData) {
       const newPlayer: Player = {
         id: Date.now().toString(),
         name: playerData.name || 'New Player',
@@ -1225,11 +1150,11 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handleEditPlayer = async (message: string): Promise<ChatMessage> => {
-    const playerName = extractPlayerName(message);
-    const player = currentUserData.players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()));
+  // const handleEditPlayer = async (message: string): Promise<ChatMessage> => {
+  //   const playerName = extractPlayerName(message);
+  //   const player = currentUserData.players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()));
     
-    if (player) {
+  //   if (player) {
       const updates = parsePlayerUpdates(message);
       const updatedPlayer = { ...player, ...updates };
       
@@ -1257,11 +1182,11 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handleRemovePlayer = async (message: string): Promise<ChatMessage> => {
-    const playerName = extractPlayerName(message);
-    const player = currentUserData.players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()));
+  // const handleRemovePlayer = async (message: string): Promise<ChatMessage> => {
+  //   const playerName = extractPlayerName(message);
+  //   const player = currentUserData.players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()));
     
-    if (player) {
+  //   if (player) {
       setUserData(prev => ({
         ...prev,
         players: prev.players.filter(p => p.id !== player.id)
@@ -1286,9 +1211,9 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handleShowPlayers = async (): Promise<ChatMessage> => {
-    const playersInfo = currentUserData.players.map(p => 
-      `${p.name} (${p.position}) - Rating: ${p.rating}, Goals: ${p.goals}, Status: ${p.status}`
+  // const handleShowPlayers = async (): Promise<ChatMessage> => {
+  //   const playersInfo = currentUserData.players.map(p =>
+  //     `${p.name} (${p.position}) - Rating: ${p.rating}, Goals: ${p.goals}, Status: ${p.status}`
     ).join('\n');
     
     return {
@@ -1301,42 +1226,42 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handleAnalysis = async (message: string): Promise<ChatMessage> => {
-    const analysisType = extractAnalysisType(message);
-    
-    let analysisResult = '';
-    
-    switch (analysisType) {
-      case 'team':
-        analysisResult = `Team Analysis:\n\n• Overall Performance: Strong (72% win rate)\n• Top Scorer: ${currentUserData.players.reduce((prev, current) => (prev.goals > current.goals) ? prev : current).name} (${currentUserData.players.reduce((prev, current) => (prev.goals > current.goals) ? prev : current).goals} goals)\n• Defensive Stability: Good (0.92 goals conceded per game)\n• Key Strength: Attacking efficiency\n• Area for Improvement: Set piece defending`;
-        break;
-      case 'player':
-        const playerName = extractPlayerName(message);
-        const player = currentUserData.players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()));
-        if (player) {
-          analysisResult = `${player.name} Analysis:\n\n• Current Rating: ${player.rating}/10\n• Goals: ${player.goals} in ${player.matches} matches\n• Assists: ${player.assists}\n• Form: ${player.rating > 8 ? 'Excellent' : player.rating > 7 ? 'Good' : 'Average'}\n• Recommendation: ${player.rating > 8 ? 'Key player, maintain fitness' : 'Focus on training to improve performance'}`;
-        } else {
-          analysisResult = 'Player not found. Please specify a valid player name.';
-        }
-        break;
-      default:
-        analysisResult = 'Comprehensive Analysis:\n\n• Team Form: Excellent\n• Attack Rating: 8.5/10\n• Defense Rating: 7.8/10\n• Midfield Control: 8.2/10\n• Recent Trend: Improving\n• Next Focus: Set piece training';
-    }
-    
-    return {
-      id: Date.now().toString(),
-      content: analysisResult,
-      sender: 'ai',
-      timestamp: new Date(),
-      type: 'data',
-      metadata: { action: 'analysis', type: analysisType }
-    };
-  };
+  // const handleAnalysis = async (message: string): Promise<ChatMessage> => {
+  //   const analysisType = extractAnalysisType(message);
 
-  const handleStats = async (message: string): Promise<ChatMessage> => {
-    const stats = `Current Season Statistics:\n\nMatches: ${currentUserData.teamStats.wins + currentUserData.teamStats.draws + currentUserData.teamStats.losses}\nWins: ${currentUserData.teamStats.wins}\nDraws: ${currentUserData.teamStats.draws}\nLosses: ${currentUserData.teamStats.losses}\nGoals For: ${currentUserData.teamStats.goalsFor}\nGoals Against: ${currentUserData.teamStats.goalsAgainst}\nGoal Difference: +${currentUserData.teamStats.goalsFor - currentUserData.teamStats.goalsAgainst}\nWin Rate: ${Math.round((currentUserData.teamStats.wins / (currentUserData.teamStats.wins + currentUserData.teamStats.draws + currentUserData.teamStats.losses)) * 100)}%`;
-    
-    return {
+  //   let analysisResult = '';
+
+  //   switch (analysisType) {
+  //     case 'team':
+  //       analysisResult = `Team Analysis:\n\n• Overall Performance: Strong (72% win rate)\n• Top Scorer: ${currentUserData.players.reduce((prev, current) => (prev.goals > current.goals) ? prev : current).name} (${currentUserData.players.reduce((prev, current) => (prev.goals > current.goals) ? prev : current).goals} goals)\n• Defensive Stability: Good (0.92 goals conceded per game)\n• Key Strength: Attacking efficiency\n• Area for Improvement: Set piece defending`;
+  //       break;
+  //     case 'player':
+  //       const playerName = extractPlayerName(message);
+  //       const player = currentUserData.players.find(p => p.name.toLowerCase().includes(playerName.toLowerCase()));
+  //       if (player) {
+  //         analysisResult = `${player.name} Analysis:\n\n• Current Rating: ${player.rating}/10\n• Goals: ${player.goals} in ${player.matches} matches\n• Assists: ${player.assists}\n• Form: ${player.rating > 8 ? 'Excellent' : player.rating > 7 ? 'Good' : 'Average'}\n• Recommendation: ${player.rating > 8 ? 'Key player, maintain fitness' : 'Focus on training to improve performance'}`;
+  //       } else {
+  //         analysisResult = 'Player not found. Please specify a valid player name.';
+  //       }
+  //       break;
+  //     default:
+  //       analysisResult = 'Comprehensive Analysis:\n\n• Team Form: Excellent\n• Attack Rating: 8.5/10\n• Defense Rating: 7.8/10\n• Midfield Control: 8.2/10\n• Recent Trend: Improving\n• Next Focus: Set piece training';
+  //   }
+
+  //   return {
+  //     id: Date.now().toString(),
+  //     content: analysisResult,
+  //     sender: 'ai',
+  //     timestamp: new Date(),
+  //     type: 'data',
+  //     metadata: { action: 'analysis', type: analysisType }
+  //   };
+  // };
+
+  // const handleStats = async (message: string): Promise<ChatMessage> => {
+  //   const stats = `Current Season Statistics:\n\nMatches: ${currentUserData.teamStats.wins + currentUserData.teamStats.draws + currentUserData.teamStats.losses}\nWins: ${currentUserData.teamStats.wins}\nDraws: ${currentUserData.teamStats.draws}\nLosses: ${currentUserData.teamStats.losses}\nGoals For: ${currentUserData.teamStats.goalsFor}\nGoals Against: ${currentUserData.teamStats.goalsAgainst}\nGoal Difference: +${currentUserData.teamStats.goalsFor - currentUserData.teamStats.goalsAgainst}\nWin Rate: ${Math.round((currentUserData.teamStats.wins / (currentUserData.teamStats.wins + currentUserData.teamStats.draws + currentUserData.teamStats.losses)) * 100)}%`;
+
+  //   return {
       id: Date.now().toString(),
       content: stats,
       sender: 'ai',
@@ -1346,9 +1271,9 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handlePerformanceReport = async (message: string): Promise<ChatMessage> => {
-    const topScorer = currentUserData.players.reduce((prev, current) => (prev.goals > current.goals) ? prev : current);
-    const topAssister = currentUserData.players.reduce((prev, current) => (prev.assists > current.assists) ? prev : current);
+  // const handlePerformanceReport = async (message: string): Promise<ChatMessage> => {
+  //   const topScorer = currentUserData.players.reduce((prev, current) => (prev.goals > current.goals) ? prev : current);
+  //   const topAssister = currentUserData.players.reduce((prev, current) => (prev.assists > current.assists) ? prev : current);
     const bestRated = currentUserData.players.reduce((prev, current) => (prev.rating > current.rating) ? prev : current);
     
     const report = `Performance Report:\n\nTop Performer: ${bestRated.name} (${bestRated.rating} rating)\nTop Scorer: ${topScorer.name} (${topScorer.goals} goals)\nTop Assister: ${topAssister.name} (${topAssister.assists} assists)\n\nSquad Overview:\n• Active Players: ${currentUserData.players.filter(p => p.status === 'active').length}\n• Injured Players: ${currentUserData.players.filter(p => p.status === 'injured').length}\n• Average Rating: ${(currentUserData.players.reduce((sum, p) => sum + p.rating, 0) / currentUserData.players.length).toFixed(1)}\n\nRecommendations:\n• Focus on fitness for injured players\n• Maintain current attacking form\n• Work on defensive set pieces`;
@@ -1363,10 +1288,10 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handleTraining = async (message: string): Promise<ChatMessage> => {
-    const trainingPlan = `AI-Generated Training Plan:\n\nWeekly Schedule:\n\nMonday - Fitness & Conditioning\n• 30min cardio\n• Strength training\n• Recovery session\n\nTuesday - Technical Skills\n• Ball control drills\n• Passing accuracy\n• Shooting practice\n\nWednesday - Tactical Work\n• Formation practice\n• Set piece training\n• Match simulation\n\nThursday - Recovery\n• Light training\n• Injury prevention\n• Mental preparation\n\nFriday - Match Preparation\n• Final tactical review\n• Set piece practice\n• Team talk\n\nFocus Areas:\n• Improve set piece defending\n• Maintain attacking fluidity\n• Build squad depth`;
+  // const handleTraining = async (message: string): Promise<ChatMessage> => {
+  //   const trainingPlan = `AI-Generated Training Plan:\n\nWeekly Schedule:\n\nMonday - Fitness & Conditioning\n• 30min cardio\n• Strength training\n• Recovery session\n\nTuesday - Technical Skills\n• Ball control drills\n• Passing accuracy\n• Shooting practice\n\nWednesday - Tactical Work\n• Formation practice\n• Set piece training\n• Match simulation\n\nThursday - Recovery\n• Light training\n• Injury prevention\n• Mental preparation\n\nFriday - Match Preparation\n• Final tactical review\n• Set piece practice\n• Team talk\n\nFocus Areas:\n• Improve set piece defending\n• Maintain attacking fluidity\n• Build squad depth`;
     
-    return {
+  //   return {
       id: Date.now().toString(),
       content: trainingPlan,
       sender: 'ai',
@@ -1376,10 +1301,10 @@ export const EnhancedAIAssistant: React.FC = () => {
     };
   };
 
-  const handleTactical = async (message: string): Promise<ChatMessage> => {
-    const tacticalAdvice = `Tactical Analysis & Recommendations:\n\nCurrent Formation: 4-3-3\n\nStrengths:\n• Strong wing play\n• Good midfield control\n• Effective pressing\n\nAreas to Improve:\n• Central defensive stability\n• Set piece defending\n• Counter-attack transitions\n\nTactical Adjustments:\n• Consider 4-2-3-1 for better defensive balance\n• Focus on quick transitions\n• Improve communication between lines\n\nMatch-Specific Advice:\n• Against strong teams: More defensive approach\n• Against weaker teams: High pressing\n• Away games: Compact formation`;
+  // const handleTactical = async (message: string): Promise<ChatMessage> => {
+  //   const tacticalAdvice = `Tactical Analysis & Recommendations:\n\nCurrent Formation: 4-3-3\n\nStrengths:\n• Strong wing play\n• Good midfield control\n• Effective pressing\n\nAreas to Improve:\n• Central defensive stability\n• Set piece defending\n• Counter-attack transitions\n\nTactical Adjustments:\n• Consider 4-2-3-1 for better defensive balance\n• Focus on quick transitions\n• Improve communication between lines\n\nMatch-Specific Advice:\n• Against strong teams: More defensive approach\n• Against weaker teams: High pressing\n• Away games: Compact formation`;
     
-    return {
+  //   return {
       id: Date.now().toString(),
       content: tacticalAdvice,
       sender: 'ai',

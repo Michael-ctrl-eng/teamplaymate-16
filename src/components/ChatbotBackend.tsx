@@ -24,7 +24,7 @@ interface ChatMessage {
   data?: any;
   actions?: any[];
   rating?: number;
-  feedback?: string;
+  feedback: string | undefined;
 }
 
 interface ChatbotContextType {
@@ -332,7 +332,7 @@ export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (error) throw error;
   };
 
-  const processUserMessage = async (content: string, type: string): Promise<ChatMessage> => {
+  const processUserMessage = async (content: string): Promise<ChatMessage> => {
     // AI message processing logic
     const lowerContent = content.toLowerCase();
     
@@ -361,12 +361,12 @@ export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ child
           messageType: 'analysis',
           data: analysisData,
           actions: [
-            {
-              id: 'export_pdf',
-              label: 'Export as PDF',
-              type: 'download',
-              action: () => footballAnalysisService.exportAnalysis(analysisData, 'pdf')
-            },
+            // {
+            //   id: 'export_pdf',
+            //   label: 'Export as PDF',
+            //   type: 'download',
+            //   action: () => footballAnalysisService.exportAnalysis(analysisData, 'pdf')
+            // },
             {
               id: 'share_analysis',
               label: 'Share Analysis',
@@ -393,8 +393,7 @@ export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ child
           homeTeam: teams.home || 'Team A',
           awayTeam: teams.away || 'Team B',
           venue: 'home',
-          historicalData: true,
-          formAnalysis: true
+          historicalData: true
         });
 
         response = {
@@ -472,8 +471,10 @@ export const ChatbotProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const shareAnalysis = (data: any) => {
     // Mock share functionality
-    const shareText = `Check out this football analysis: ${data.teams?.home} vs ${data.teams?.away}`;
-    navigator.clipboard.writeText(shareText);
+    if (data && data.teams) {
+      const shareText = `Check out this football analysis: ${data.teams.home} vs ${data.teams.away}`;
+      navigator.clipboard.writeText(shareText);
+    }
   };
 
   const rateMessage = async (messageId: string, rating: number, feedback?: string): Promise<void> => {

@@ -6,6 +6,7 @@ import { queryCacheService } from '../utils/database';
 interface RealPlayerData {
   id: number;
   name: string;
+  position: string;
   goals: number;
   assists: number;
   minutes: number;
@@ -82,6 +83,7 @@ class AnalyticsDataService {
       const playerData = data.players?.map((player: any) => ({
         id: Number(player.id),
         name: player.name,
+        position: player.position || 'N/A',
         goals: player.statistics?.total_goals || 0,
         assists: player.statistics?.total_assists || 0,
         minutes: player.statistics?.total_minutes || 0,
@@ -361,8 +363,9 @@ class AnalyticsDataService {
   private getFallbackPlayerData(): RealPlayerData[] {
     const players = ['Your Player 1', 'Your Player 2', 'Your Player 3', 'Your Player 4', 'Your Player 5'];
     return players.map((name, index) => ({
-      id: index.toString(),
+      id: index,
       name,
+      position: ['ST', 'CM', 'CB', 'GK'][index % 4],
       goals: Math.floor(Math.random() * 15) + 2,
       assists: Math.floor(Math.random() * 10) + 1,
       minutes: Math.floor(Math.random() * 1500) + 500,

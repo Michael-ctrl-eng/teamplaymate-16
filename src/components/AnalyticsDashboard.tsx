@@ -12,7 +12,7 @@ import {
   Clock, Download, RefreshCw, 
   BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon,
   Search, ChevronDown, ChevronUp,
-  Plus, X
+  Plus, X, CheckCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -25,7 +25,6 @@ import { Progress } from './ui/progress';
 import { Switch } from './ui/switch';
 import { analyticsExportService } from '../services/analyticsExportService';
 import { analyticsDataService, RealPlayerData, RealMatchData, RealTimeMatchData } from '../services/analyticsDataService';
-import { useLanguage } from '../contexts/LanguageContext';
 
 
 
@@ -36,18 +35,21 @@ interface AnalyticsDashboardProps {
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ className }) => {
-  const { t } = useLanguage();
+  const generatePlayerData = (): RealPlayerData[] => [];
+  const generateMatchData = (): RealMatchData[] => [];
+  const generateRealTimeData = (): RealTimeMatchData | null => null;
   const [playerData, setPlayerData] = useState<RealPlayerData[]>([]);
   const [matchData, setMatchData] = useState<RealMatchData[]>([]);
   const [realTimeData, setRealTimeData] = useState<RealTimeMatchData | null>(null);
   const [selectedMetric, setSelectedMetric] = useState('goals');
   const [timeRange, setTimeRange] = useState('season');
-  const [autoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [filterValue, setFilterValue] = useState('');
-  const [sortBy] = useState('goals');
+  const [sortBy, setSortBy] = useState('goals');
   const [sortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isLive] = useState(false);
   const [selectedPlayers, setSelectedPlayers] = useState<number[]>([]);
-  const [chartType] = useState<'bar' | 'line' | 'pie' | 'radar'>('bar');
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'pie' | 'radar'>('bar');
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedCards, setExpandedCards] = useState<string[]>(['overview']);
   const [dataLoading, setDataLoading] = useState(true);
@@ -129,11 +131,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
 
   // Chart data transformations
   const chartData = useMemo(() => {
+    const getMetricValue = (player: RealPlayerData, metric: string) => {
+      if (metric === 'rating') {
+        return parseFloat(player.rating);
+      }
+      return player[metric as keyof RealPlayerData] as number;
+    };
+
     switch (chartType) {
       case 'pie':
         return filteredPlayers.slice(0, 6).map(player => ({
           name: player.name,
-          value: player[selectedMetric as keyof typeof player] as number,
+          value: getMetricValue(player, selectedMetric),
           fill: COLORS[filteredPlayers.indexOf(player) % COLORS.length]
         }));
       case 'radar':
@@ -147,7 +156,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
       default:
         return filteredPlayers.map(player => ({
           name: player.name,
-          [selectedMetric]: player[selectedMetric as keyof typeof player],
+          [selectedMetric]: getMetricValue(player, selectedMetric),
           fill: COLORS[filteredPlayers.indexOf(player) % COLORS.length]
         }));
     }
@@ -401,31 +410,31 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-4">
                 <div className="text-center">
-                  <div className="text-lg font-bold">{realTimeData.currentMatch.homeTeam}</div>
-                  <div className="text-3xl font-bold">{realTimeData.currentMatch.score.home}</div>
+                  <div className="text-lg font-bold">{realTimeData?.currentMatch.homeTeam}</div>
+                  <div className="text-3xl font-bold">{realTimeData?.currentMatch.score.home}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-sm opacity-75">LIVE</div>
-                  <div className="text-xl font-bold">{realTimeData.currentMatch.minute}'</div>
+                  <div className="text-xl font-bold">{realTimeData?.currentMatch.minute}'</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-lg font-bold">{realTimeData.currentMatch.awayTeam}</div>
-                  <div className="text-3xl font-bold">{realTimeData.currentMatch.score.away}</div>
+                  <div className="text-lg font-bold">{realTimeData?.currentMatch.awayTeam}</div>
+                  <div className="text-3xl font-bold">{realTimeData?.currentMatch.score.away}</div>
                 </div>
               </div>
               
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="text-center">
                   <div className="font-semibold">Possession</div>
-                  <div>{realTimeData.currentMatch.possession.home}% - {realTimeData.currentMatch.possession.away}%</div>
+                  <div>{realTimeData?.currentMatch.possession.home}% - {realTimeData?.currentMatch.possession.away}%</div>
                 </div>
                 <div className="text-center">
                   <div className="font-semibold">Shots</div>
-                  <div>{realTimeData.currentMatch.shots.home} - {realTimeData.currentMatch.shots.away}</div>
+                  <div>{realTimeData?.currentMatch.shots.home} - {realTimeData?.currentMatch.shots.away}</div>
                 </div>
                 <div className="text-center">
                   <div className="font-semibold">Corners</div>
-                  <div>{realTimeData.currentMatch.corners.home} - {realTimeData.currentMatch.corners.away}</div>
+                  <div>{realTimeData?.currentMatch.corners.home} - {realTimeData?.currentMatch.corners.away}</div>
                 </div>
               </div>
             </div>
@@ -475,8 +484,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <>
-                      {chartType === 'bar' && (
-                        <BarChart data={chartData}>
+                      {chartType === 'bar' && chartData && (
+                        <BarChart data={chartData as any}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
@@ -484,8 +493,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                           <Bar dataKey={selectedMetric} fill="#4ADE80" />
                         </BarChart>
                       )}
-                      {chartType === 'line' && (
-                        <LineChart data={chartData}>
+                      {chartType === 'line' && chartData && (
+                        <LineChart data={chartData as any}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
@@ -499,17 +508,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                           />
                         </LineChart>
                       )}
-                      {chartType === 'pie' && (
+                      {chartType === 'pie' && chartData && (
                         <PieChart>
                           <Pie
-                            data={chartData}
+                            data={chartData as any}
                             cx="50%"
                             cy="50%"
                             outerRadius={100}
                             dataKey="value"
                             label={({ name, value }) => `${name}: ${value}`}
                           >
-                            {chartData.map((entry, index) => (
+                            {(chartData as any[]).map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.fill} />
                             ))}
                           </Pie>
@@ -518,9 +527,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                       )}
                     </>
                   </ResponsiveContainer>
-                  {chartType === 'radar' && (
+                  {chartType === 'radar' && chartData && (
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={chartData}>
+                      <RadarChart data={chartData as any}>
                         <PolarGrid />
                         <PolarAngleAxis dataKey="metric" />
                         <PolarRadiusAxis angle={90} domain={[0, 100]} />
@@ -560,9 +569,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               {filteredPlayers.slice(0, 5).map((player, index) => {
                 const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
                 const [isHovered, setIsHovered] = useState(false);
-                const cardRef = useRef(null);
+                const cardRef = useRef<HTMLDivElement>(null);
 
-                const handleMouseMove = (e) => {
+                const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
                   if (!cardRef.current) return;
                   const rect = cardRef.current.getBoundingClientRect();
                   const x = e.clientX - rect.left;
@@ -695,7 +704,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {realTimeData.liveEvents.map((event, index) => (
+              {realTimeData?.liveEvents.map((event, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 10 }}
@@ -747,9 +756,9 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
               ].map((stat, index) => {
                 const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
                 const [isHovered, setIsHovered] = useState(false);
-                const cardRef = useRef(null);
+                const cardRef = useRef<HTMLDivElement>(null);
 
-                const handleMouseMove = (e) => {
+                const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
                   if (!cardRef.current) return;
                   const rect = cardRef.current.getBoundingClientRect();
                   const x = e.clientX - rect.left;

@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { MessageSquare, Send, Brain, Target, TrendingUp, Users, Zap, Shield, Sparkles, Bot, AlertTriangle, CheckCircle } from 'lucide-react';
+import { MessageSquare, Send, Brain, Target, TrendingUp, Users, Zap, Shield, Sparkles, Bot, AlertTriangle, CheckCircle, BarChart3, Download, ArrowUp, Minus } from 'lucide-react';
 import {
   XAxis,
   YAxis,
@@ -19,10 +19,12 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar
+  Radar,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell
 } from 'recharts';
 import { useTheme } from '../contexts/ThemeContext';
-import { useState } from 'react';
 
 
 
@@ -256,37 +258,6 @@ export const AIAssistantSection: React.FC = () => {
     { name: 'Silva', position: 'CM', goals: 5, assists: 12, rating: 8.1, form: 'good' },
     { name: 'Rodriguez', position: 'CB', goals: 2, assists: 1, rating: 7.8, form: 'good' },
     { name: 'Martinez', position: 'GK', goals: 0, assists: 0, rating: 8.2, form: 'excellent' }
-  ];
-
-  const quickActions: QuickAction[] = [
-    {
-      id: '1',
-      title: 'Analyze Formation',
-      description: 'AI formation analysis',
-      icon: <Shield className="h-4 w-4" />,
-      category: 'Analysis'
-    },
-    {
-      id: '2',
-      title: 'Player Report',
-      description: 'Generate player insights',
-      icon: <Users className="h-4 w-4" />,
-      category: 'Analysis'
-    },
-    {
-      id: '3',
-      title: 'Training Plan',
-      description: 'Create AI training plan',
-      icon: <Target className="h-4 w-4" />,
-      category: 'Training'
-    },
-    {
-      id: '4',
-      title: 'Match Prediction',
-      description: 'Predict match outcome',
-      icon: <Brain className="h-4 w-4" />,
-      category: 'Analysis'
-    }
   ];
 
   return (
@@ -550,7 +521,7 @@ export const AIAssistantSection: React.FC = () => {
                             cy="50%"
                             outerRadius={80}
                             dataKey="value"
-                            label={({ name, value }) => `${name}: ${value}%`}
+                            label={({ name, value }: any) => `${name}: ${value}%`}
                           >
                             {tacticalDistribution.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
