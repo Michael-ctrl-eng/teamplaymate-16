@@ -23,16 +23,36 @@ const createTeamSchema = Joi.object({
     name: Joi.string().min(3).max(100).required(),
     sport: Joi.string().valid('soccer', 'futsal').required(),
     description: Joi.string().max(500).optional(),
-    logo_url: Joi.string().uri().optional()
-  })
+    logo_url: Joi.string().uri().optional(),
+    founded: Joi.number().integer().min(1800).max(new Date().getFullYear()).optional(),
+    stadium: Joi.string().max(255).optional(),
+    capacity: Joi.number().integer().positive().optional(),
+    city: Joi.string().max(255).optional(),
+    country: Joi.string().max(255).optional(),
+    website: Joi.string().uri().optional(),
+    email: Joi.string().email().optional(),
+    phone: Joi.string().max(50).optional(),
+  }).required(),
+  query: Joi.object(),
+  params: Joi.object()
 });
 
 const updateTeamSchema = Joi.object({
   body: Joi.object({
     name: Joi.string().min(3).max(100).optional(),
     description: Joi.string().max(500).optional(),
-    logo_url: Joi.string().uri().optional()
-  })
+    logo_url: Joi.string().uri().optional(),
+    founded: Joi.number().integer().min(1800).max(new Date().getFullYear()).optional(),
+    stadium: Joi.string().max(255).optional(),
+    capacity: Joi.number().integer().positive().optional(),
+    city: Joi.string().max(255).optional(),
+    country: Joi.string().max(255).optional(),
+    website: Joi.string().uri().optional(),
+    email: Joi.string().email().optional(),
+    phone: Joi.string().max(50).optional(),
+  }).required(),
+  query: Joi.object(),
+  params: Joi.object()
 });
 
 // Routes
@@ -44,7 +64,7 @@ router.post('/',
   authenticateToken,
   validateRequest(createTeamSchema),
   asyncHandler(async (req, res) => {
-    const { name, sport, description, logo_url } = req.body;
+    const { name, sport, description, logo_url, founded, stadium, capacity, city, country, website, email, phone } = req.body;
     const owner_id = req.user.id;
 
     const team = await db.create('teams', {
@@ -52,6 +72,14 @@ router.post('/',
       sport,
       description,
       logo_url,
+      founded,
+      stadium,
+      capacity,
+      city,
+      country,
+      website,
+      email,
+      phone,
       owner_id
     });
 
