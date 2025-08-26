@@ -93,87 +93,86 @@ export const api = {
   },
 };
 
-// Mock Auth API functions for local development
+// Real Auth API functions with Supabase integration
+import { supabase } from './supabase';
+
 export const authAPI = {
   register: async (data: any) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Create mock user
-    const mockUser = {
-      id: `user_${Date.now()}`,
-      email: data.email,
-      name: data.name || data.email.split('@')[0],
-      picture: undefined,
-      provider: 'email' as const,
-      created_at: new Date().toISOString(),
-      location: data.location || '',
-      sport: undefined,
-      sportSelected: false
-    };
-    
-    const mockToken = `mock_token_${Date.now()}`;
-    
-    return {
-      data: {
-        success: true,
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            location: data.location || '',
+            sport: data.sport
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      return {
         data: {
-          user: mockUser,
-          token: mockToken
-        },
-        message: 'Registration successful'
-      }
-    };
+          success: true,
+          data: {
+            user: authData.user,
+            session: authData.session
+          },
+          message: 'Registration successful. Please check your email for verification.'
+        }
+      };
+    } catch (error: any) {
+      return {
+        data: {
+          success: false,
+          error: error.message,
+          message: 'Registration failed'
+        }
+      };
+    }
   },
   
   login: async (data: any) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if user exists in localStorage
-    const savedUser = localStorage.getItem('statsor_user');
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      if (user.email === data.email) {
-        const mockToken = `mock_token_${Date.now()}`;
-        return {
-          data: {
-            success: true,
-            data: {
-              user: user,
-              token: mockToken
-            },
-            message: 'Login successful'
-          }
-        };
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password
+      });
+
+      if (error) throw error;
+
+      // Get user profile data
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user?.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.warn('Profile not found, using auth data only');
       }
-    }
-    
-    // Create new user if not found
-    const mockUser = {
-      id: `user_${Date.now()}`,
-      email: data.email,
-      name: data.email.split('@')[0],
-      picture: undefined,
-      provider: 'email' as const,
-      created_at: new Date().toISOString(),
-      location: '',
-      sport: undefined,
-      sportSelected: false
-    };
-    
-    const mockToken = `mock_token_${Date.now()}`;
-    
-    return {
-      data: {
-        success: true,
+
+      return {
         data: {
-          user: mockUser,
-          token: mockToken
-        },
-        message: 'Login successful'
-      }
-    };
+          success: true,
+          data: {
+            user: profile || authData.user,
+            session: authData.session
+          },
+          message: 'Login successful'
+        }
+      };
+    } catch (error: any) {
+      return {
+        data: {
+          success: false,
+          error: error.message,
+          message: 'Login failed'
+        }
+      };
+    }
   },
   
   verifyGoogleToken: async (code: string) => {
@@ -287,22 +286,28 @@ export const authAPI = {
   },
 
   forgotPassword: async (data: { email: string }) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Store reset code in localStorage for demo
-    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-    localStorage.setItem(`reset_code_${data.email}`, resetCode);
-    localStorage.setItem(`reset_code_expiry_${data.email}`, (Date.now() + 15 * 60 * 1000).toString());
-    
-    console.log(`Mock: Reset code for ${data.email}: ${resetCode}`);
-    
-    return {
-      data: {
-        success: true,
-        message: 'If the email exists, a reset code has been sent.'
-      }
-    };
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      });
+
+      if (error) throw error;
+
+      return {
+        data: {
+          success: true,
+          message: 'If the email exists, a reset link has been sent.'
+        }
+      };
+    } catch (error: any) {
+      return {
+        data: {
+          success: false,
+          error: error.message,
+          message: 'Failed to send reset email'
+        }
+      };
+    }
   },
 
   verifyResetCode: async (data: { email: string; code: string }) => {
