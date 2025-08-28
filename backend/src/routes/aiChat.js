@@ -1,5 +1,5 @@
 const express = require('express');
-const { AiChatHistoryService } = require('../services/aiChatHistoryService.js');
+const AiChatHistoryService = require('../services/aiChatHistoryService.js');
 const { asyncHandler } = require('../middleware/errorHandler.js');
 const { authenticateToken } = require('../middleware/auth.js');
 

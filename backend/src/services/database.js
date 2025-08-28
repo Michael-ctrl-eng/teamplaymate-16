@@ -16,10 +16,21 @@ class DatabaseService {
   async initialize() {
     try {
       const supabaseUrl = process.env.SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Missing Supabase configuration');
+      // Check if Supabase is properly configured
+      const isSupabaseConfigured = supabaseUrl && supabaseKey && 
+        supabaseUrl !== 'https://placeholder.supabase.co' && 
+        supabaseKey !== 'placeholder_anon_key' &&
+        supabaseKey !== 'placeholder_service_role_key' &&
+        supabaseUrl.startsWith('https://');
+
+      if (!isSupabaseConfigured) {
+        logger.warn('Supabase not configured properly. Running in mock mode.');
+        logger.warn('To enable database features, configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+        this.isConnected = false;
+        this.mockMode = true;
+        return;
       }
 
       this.supabase = createClient(supabaseUrl, supabaseKey, {
@@ -215,6 +226,11 @@ class DatabaseService {
 
   // Generic CRUD operations
   async create(table, data) {
+    if (this.mockMode) {
+      logger.warn(`Mock mode: Simulating create operation for ${table}`);
+      return { id: 'mock-id-' + Date.now(), ...data, created_at: new Date().toISOString() };
+    }
+    
     try {
       const { data: result, error } = await this.supabase
         .from(table)
@@ -231,6 +247,11 @@ class DatabaseService {
   }
 
   async findById(table, id) {
+    if (this.mockMode) {
+      logger.warn(`Mock mode: Simulating findById operation for ${table}`);
+      return null;
+    }
+    
     try {
       const { data, error } = await this.supabase
         .from(table)
@@ -247,6 +268,11 @@ class DatabaseService {
   }
 
   async findMany(table, filters = {}, options = {}) {
+    if (this.mockMode) {
+      logger.warn(`Mock mode: Simulating findMany operation for ${table}`);
+      return [];
+    }
+    
     try {
       let query = this.supabase.from(table).select('*');
 
@@ -280,6 +306,11 @@ class DatabaseService {
   }
 
   async update(table, id, data) {
+    if (this.mockMode) {
+      logger.warn(`Mock mode: Simulating update operation for ${table}`);
+      return { id, ...data, updated_at: new Date().toISOString() };
+    }
+    
     try {
       const { data: result, error } = await this.supabase
         .from(table)
@@ -297,6 +328,11 @@ class DatabaseService {
   }
 
   async delete(table, id) {
+    if (this.mockMode) {
+      logger.warn(`Mock mode: Simulating delete operation for ${table}`);
+      return true;
+    }
+    
     try {
       const { error } = await this.supabase
         .from(table)
@@ -307,6 +343,35 @@ class DatabaseService {
       return true;
     } catch (error) {
       logger.error(`Error deleting record in ${table}:`, error);
+      throw error;
+    }
+  }
+
+  async count(table, filters = {}) {
+    if (this.mockMode) {
+      logger.warn(`Mock mode: Simulating count operation for ${table}`);
+      return 0;
+    }
+    
+    try {
+      let query = this.supabase
+        .from(table)
+        .select('*', { count: 'exact', head: true });
+
+      // Apply filters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          query = query.in(key, value);
+        } else {
+          query = query.eq(key, value);
+        }
+      });
+
+      const { count, error } = await query;
+      if (error) throw error;
+      return count || 0;
+    } catch (error) {
+      logger.error(`Error counting records in ${table}:`, error);
       throw error;
     }
   }

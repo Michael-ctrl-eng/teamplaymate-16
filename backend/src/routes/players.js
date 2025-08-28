@@ -2,8 +2,12 @@ const express = require('express');
 const Joi = require('joi');
 const multer = require('multer');
 const path = require('path');
-const { DatabaseService } = require('../services/database.js');
-const { RedisService } = require('../services/redis.js');
+const databaseService = require('../services/database');
+const redisService = require('../services/redis');
+const SecurityService = require('../services/securityService');
+const logger = require('../utils/logger');
+const { body, validationResult } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 const { 
   asyncHandler, 
   validateRequest, 
@@ -19,8 +23,8 @@ const {
 } = require('../middleware/auth.js');
 
 const router = express.Router();
-const db = new DatabaseService();
-const redis = new RedisService();
+const db = databaseService;
+const redis = redisService;
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({

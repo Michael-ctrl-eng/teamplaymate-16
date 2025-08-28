@@ -1,8 +1,8 @@
 const express = require('express');
 const Joi = require('joi');
 const paypal = require('paypal-rest-sdk');
-const { DatabaseService } = require('../services/database.js');
-const { RedisService } = require('../services/redis.js');
+const databaseService = require('../services/database.js');
+const redisService = require('../services/redis.js');
 const { 
   asyncHandler, 
   validateRequest, 
@@ -19,8 +19,8 @@ const crypto = require('crypto');
 const winston = require('winston');
 
 const router = express.Router();
-const db = new DatabaseService();
-const redis = new RedisService();
+const db = databaseService;
+const redis = redisService;
 
 // PayPal configuration
 paypal.configure({

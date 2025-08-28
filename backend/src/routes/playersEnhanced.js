@@ -11,7 +11,7 @@ const {
   NotFoundError,
   ConflictError
 } = require('../middleware/errorHandler');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 const apiService = new APIService();
@@ -286,7 +286,7 @@ router.post('/search',
 // @access  Private (Admin/Coach only)
 router.post('/',
   authenticateToken,
-  authorizeRoles(['admin', 'coach', 'manager']),
+  requireRole(['admin', 'coach', 'manager']),
   generalLimiter,
   validateRequest(createPlayerSchema),
   asyncHandler(async (req, res) => {
@@ -324,7 +324,7 @@ router.post('/',
 // @access  Private (Admin/Coach only)
 router.post('/batch',
   authenticateToken,
-  authorizeRoles(['admin', 'coach', 'manager']),
+  requireRole(['admin', 'coach', 'manager']),
   batchLimiter,
   validateRequest(batchCreateSchema),
   asyncHandler(async (req, res) => {
@@ -462,7 +462,7 @@ router.put('/:id',
 // @access  Private (Admin only)
 router.delete('/:id',
   authenticateToken,
-  authorizeRoles(['admin']),
+  requireRole(['admin']),
   generalLimiter,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
@@ -631,7 +631,7 @@ router.post('/compare',
 // @access  Private (Admin/Coach only)
 router.put('/batch',
   authenticateToken,
-  authorizeRoles(['admin', 'coach', 'manager']),
+  requireRole(['admin', 'coach', 'manager']),
   batchLimiter,
   asyncHandler(async (req, res) => {
     const { updates } = req.body;

@@ -12,7 +12,7 @@ class EmailService {
   async initializeTransporter() {
     try {
       // Configure nodemailer with Gmail SMTP
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.EMAIL_PORT) || 587,
         secure: process.env.EMAIL_SECURE === 'true' || false,

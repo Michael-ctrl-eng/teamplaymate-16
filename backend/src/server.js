@@ -6,9 +6,10 @@ const rateLimit = require('express-rate-limit');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const { Server: SocketIOServer } = require('socket.io');
 
 // Import configuration and services
-const config = require('./config/env');
+const { config } = require('./config/env');
 const { initializeDatabase } = require('./config/database');
 const { initializeRedis } = require('./config/redis');
 const SocketService = require('./services/socket');
@@ -18,7 +19,7 @@ const logger = {
   warn: (msg) => console.warn(`[SERVER WARN] ${msg}`),
   error: (msg) => console.error(`[SERVER ERROR] ${msg}`)
 };
-const errorHandler = require('./middleware/errorHandler');
+const { errorHandler } = require('./middleware/errorHandler');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -32,7 +33,7 @@ const reportsRoutes = require('./routes/reports');
 const aiChatRoutes = require('./routes/aiChat');
 
 // Import security middleware (silent background protection)
-const securityMiddleware = require('./middleware/security');
+const { securityCheck, inputSanitization, sqlInjectionProtection } = require('./middleware/security');
 // Initialize background security monitor (completely invisible)
 require('./services/backgroundSecurity');
 
@@ -98,8 +99,9 @@ class Server {
   }
 
   configureMiddleware() {
-    // Security middleware
-    this.app.use(helmet({
+    try {
+      // Security middleware
+      this.app.use(helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
@@ -114,7 +116,7 @@ class Server {
 
     // CORS configuration
     const corsOptions = {
-      origin: config.CORS_ORIGIN === '*' ? true : config.CORS_ORIGIN.split(','),
+      origin: config.CORS_ORIGIN === '*' ? true : (config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : ['http://localhost:3006']),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -130,7 +132,9 @@ class Server {
     this.app.use(express.urlencoded({ extended: true, limit: config.UPLOAD_MAX_SIZE }));
 
     // Security middleware (integrated threat detection)
-    this.app.use(securityMiddleware);
+    this.app.use(inputSanitization);
+    this.app.use(sqlInjectionProtection);
+    this.app.use(securityCheck);
 
     // Rate limiting
     const limiter = rateLimit({
@@ -174,16 +178,23 @@ class Server {
         environment: process.env.NODE_ENV || 'development'
       });
     });
+    } catch (error) {
+      logger.error('Error configuring middleware:', error.message);
+      logger.error('Stack trace:', error.stack);
+      console.error('Full error object:', error);
+      throw error;
+    }
   }
 
   setupRoutes() {
+    try {
     // Health check endpoint
     this.app.get('/health', (req, res) => {
       res.json({
         status: 'OK',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        environment: config.app.env,
+        environment: config.NODE_ENV,
         version: process.env.npm_package_version || '1.0.0'
       });
     });
@@ -325,35 +336,78 @@ class Server {
         availableEndpoints: '/api/docs'
       });
     });
+    } catch (error) {
+      logger.error('Error setting up routes:', error.message);
+      logger.error('Stack trace:', error.stack);
+      console.error('Full error object:', error);
+      throw error;
+    }
   }
 
   setupErrorHandling() {
-    // Global error handler
-    this.app.use(errorHandler);
+    try {
+      // Global error handler
+      this.app.use(errorHandler);
 
-    // Unhandled promise rejections
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-      // Close server gracefully
-      this.gracefulShutdown('UNHANDLED_REJECTION');
-    });
+      // Unhandled promise rejections
+      process.on('unhandledRejection', (reason, promise) => {
+        logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+        // Close server gracefully
+        this.gracefulShutdown('UNHANDLED_REJECTION');
+      });
 
-    // Uncaught exceptions
-    process.on('uncaughtException', (error) => {
-      logger.error('Uncaught Exception:', error);
-      // Close server gracefully
-      this.gracefulShutdown('UNCAUGHT_EXCEPTION');
-    });
+      // Uncaught exceptions
+      process.on('uncaughtException', (error) => {
+        logger.error('Uncaught Exception:', error);
+        // Close server gracefully
+        this.gracefulShutdown('UNCAUGHT_EXCEPTION');
+      });
 
-    // Graceful shutdown signals
-    process.on('SIGTERM', () => this.gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => this.gracefulShutdown('SIGINT'));
+      // Graceful shutdown signals
+      process.on('SIGTERM', () => this.gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => this.gracefulShutdown('SIGINT'));
+      
+      logger.info('Error handling setup completed successfully');
+    } catch (error) {
+      logger.error('Error setting up error handling:', error.message);
+      logger.error('Stack trace:', error.stack);
+      console.error('Full error object:', error);
+      throw error;
+    }
   }
 
   initializeSocket() {
-    this.socketService = new SocketService(this.server);
-    this.socketService.initialize();
-    logger.info('Socket.io initialized successfully');
+    try {
+      console.log('[DEBUG] Starting Socket.io initialization...');
+      console.log('[DEBUG] Creating SocketIOServer instance...');
+      
+      this.io = new SocketIOServer(this.server, {
+        cors: {
+          origin: config.CORS_ORIGIN === '*' ? true : (config.CORS_ORIGIN ? config.CORS_ORIGIN.split(',') : ['http://localhost:3006']),
+          credentials: true
+        }
+      });
+      
+      console.log('[DEBUG] SocketIOServer created successfully');
+      console.log('[DEBUG] Using SocketService instance...');
+      
+      this.socketService = SocketService;
+      
+      console.log('[DEBUG] SocketService instance obtained, initializing...');
+      this.socketService.initialize(this.io);
+      
+      console.log('[DEBUG] Socket.io initialization completed');
+      logger.info('Socket.io initialized successfully');
+    } catch (error) {
+      console.error('[DEBUG] Socket.io initialization error:', error);
+      console.error('[DEBUG] Error name:', error.name);
+      console.error('[DEBUG] Error message:', error.message);
+      console.error('[DEBUG] Error stack:', error.stack);
+      console.error('[DEBUG] Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      logger.error('Error initializing Socket.io:', error.message || 'Unknown error');
+      logger.error('Stack trace:', error.stack || 'No stack trace available');
+      throw error;
+    }
   }
 
   setupSocketIO() {

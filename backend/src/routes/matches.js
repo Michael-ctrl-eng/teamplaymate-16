@@ -1,9 +1,9 @@
 const express = require('express');
 const Joi = require('joi');
-const { DatabaseService } = require('../services/database.js');
-const { RedisService } = require('../services/redis.js');
-const { SocketService } = require('../services/socket.js');
-const { MatchReportService } = require('../services/matchReportService.js');
+const databaseService = require('../services/database.js');
+const redisService = require('../services/redis.js');
+const socketService = require('../services/socket.js');
+const matchReportService = require('../services/matchReportService.js');
 const { 
   asyncHandler, 
   validateRequest, 
@@ -18,10 +18,9 @@ const {
 } = require('../middleware/auth.js');
 
 const router = express.Router();
-const db = new DatabaseService();
-const redis = new RedisService();
-const socketService = new SocketService();
-const matchReportService = new MatchReportService();
+const db = databaseService;
+const redis = redisService;
+// matchReportService is already imported as an instance above
 
 // Validation schemas
 const createMatchSchema = Joi.object({

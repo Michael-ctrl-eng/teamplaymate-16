@@ -1,6 +1,10 @@
 const express = require('express');
 const Joi = require('joi');
-const { DatabaseService } = require('../services/database.js');
+const databaseService = require('../services/database');
+const SecurityService = require('../services/securityService');
+const logger = require('../utils/logger');
+const { body, validationResult } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 const { MatchReportService } = require('../services/matchReportService.js');
 const { 
   asyncHandler, 
@@ -14,8 +18,8 @@ const {
 } = require('../middleware/auth.js');
 
 const router = express.Router();
-const db = new DatabaseService();
-const matchReportService = new MatchReportService();
+const db = databaseService;
+const matchReportService = require('../services/matchReportService');
 
 // Validation schemas
 const sendMatchReportSchema = Joi.object({

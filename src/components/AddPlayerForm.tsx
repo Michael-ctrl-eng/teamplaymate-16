@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { CalendarIcon, Upload, X } from 'lucide-react';
+import { CalendarIcon, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 
@@ -116,7 +116,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ isOpen, onClose, onSave }
     const newPlayer: Omit<Player, 'id'> = {
       number: parseInt(formData.number),
       name: formData.name,
-      nickname: formData.nickname || undefined,
+      nickname: formData.nickname || '',
       position: formData.position,
       age,
       nationality: formData.nationality,
@@ -142,7 +142,8 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ isOpen, onClose, onSave }
       duelsWon: 0,
       duelsLost: 0,
       crosses: 0,
-      photo: formData.photo || undefined,
+      saves: 0,
+      photo: formData.photo || '',
       shotMap: { 'top-left': 0, 'top-center': 0, 'top-right': 0, 'middle-left': 0, 'middle-center': 0, 'middle-right': 0, 'bottom-left': 0, 'bottom-center': 0, 'bottom-right': 0 }
     };
 

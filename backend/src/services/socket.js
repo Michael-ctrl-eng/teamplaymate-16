@@ -1,6 +1,6 @@
 const winston = require('winston');
 const jwt = require('jsonwebtoken');
-const { RedisService } = require('./redis');
+const redisService = require('./redis');
 const { APIService } = require('./apiService');
 const EventEmitter = require('events');
 
@@ -24,6 +24,7 @@ class SocketService extends EventEmitter {
     this.rooms = new Map();
     this.analyticsStreams = new Map();
     this.apiService = new APIService();
+    this.redis = redisService;
     this.performanceMetrics = {
       connections: 0,
       totalMessages: 0,
@@ -133,7 +134,7 @@ class SocketService extends EventEmitter {
         socket.userEmail = decoded.email;
         
         // Store user session in Redis
-        await RedisService.setSession(`socket:${socket.id}`, {
+        await redisService.setSession(`socket:${socket.id}`, {
           userId: decoded.userId,
           email: decoded.email,
           connectedAt: new Date().toISOString()
@@ -250,7 +251,7 @@ class SocketService extends EventEmitter {
           };
           
           // Store message in Redis for history
-          await RedisService.set(
+          await redisService.set(
             `chat:${roomKey}:${chatMessage.id}`,
             chatMessage,
             86400 // 24 hours
@@ -340,7 +341,7 @@ class SocketService extends EventEmitter {
           };
           
           // Store in Redis for real-time tracking
-          await RedisService.set(
+          await redisService.set(
             `player_status:${playerId}`,
             statusUpdate,
             300 // 5 minutes
@@ -377,7 +378,7 @@ class SocketService extends EventEmitter {
           };
           
           // Store in Redis
-          await RedisService.set(
+          await redisService.set(
             `training_update:${sessionId}:${Date.now()}`,
             trainingUpdate,
             7200 // 2 hours
@@ -411,7 +412,7 @@ class SocketService extends EventEmitter {
           };
           
           // Store alert
-          await RedisService.set(
+          await redisService.set(
             `performance_alert:${alert.id}`,
             alert,
             86400 // 24 hours
@@ -452,7 +453,7 @@ class SocketService extends EventEmitter {
           };
           
           // Store injury report
-          await RedisService.set(
+          await redisService.set(
             `injury_report:${injuryReport.id}`,
             injuryReport,
             30 * 86400 // 30 days
@@ -489,7 +490,7 @@ class SocketService extends EventEmitter {
           };
           
           // Store tactical update
-          await RedisService.set(
+          await redisService.set(
             `tactical_update:${matchId}:${Date.now()}`,
             tacticalUpdate,
             3600 // 1 hour
@@ -535,7 +536,7 @@ class SocketService extends EventEmitter {
           }
           
           // Clean up session from Redis
-          await RedisService.deleteSession(`socket:${socket.id}`);
+          await redisService.deleteSession(`socket:${socket.id}`);
           
         } catch (error) {
           logger.error('Error during disconnect cleanup:', error);

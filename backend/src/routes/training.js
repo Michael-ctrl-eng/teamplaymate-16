@@ -1,8 +1,8 @@
 const express = require('express');
 const Joi = require('joi');
-const { DatabaseService } = require('../services/database.js');
-const { RedisService } = require('../services/redis.js');
-const { SocketService } = require('../services/socket.js');
+const databaseService = require('../services/database.js');
+const redisService = require('../services/redis.js');
+const socketService = require('../services/socket.js');
 const { 
   asyncHandler, 
   validateRequest, 
@@ -17,9 +17,9 @@ const {
 } = require('../middleware/auth.js');
 
 const router = express.Router();
-const db = new DatabaseService();
-const redis = new RedisService();
-const socket = new SocketService();
+const db = databaseService;
+const redis = redisService;
+const socket = socketService;
 
 // Validation schemas
 const createTrainingSessionSchema = Joi.object({

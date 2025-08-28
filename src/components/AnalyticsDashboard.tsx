@@ -1,13 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
-} from 'recharts';
-import { 
-  Activity, RefreshCw, Search, Users, Target, TrendingUp, 
-  Clock, BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon,
-  Download, Plus, Trophy, Shield, Calendar, X, Edit3, Trash2
+  BarChart, PieChart, TrendingUp, Users, Calendar, 
+  Download, Plus, Trophy, Shield, X, Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -1015,7 +1010,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                     ))}
                   </div>
                 )}
-              </CardContent>
+              </CardContentContent>
             </Card>
           </motion.div>
           

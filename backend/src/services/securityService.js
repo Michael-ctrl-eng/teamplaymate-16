@@ -1,14 +1,14 @@
 const crypto = require('crypto');
-const { RedisService } = require('./redis');
-const { DatabaseService } = require('./database');
+const redisService = require('./redis');
+const databaseService = require('./database');
 const logger = require('../utils/logger');
 const geoip = require('geoip-lite');
 const useragent = require('useragent');
 
 class SecurityService {
   constructor() {
-    this.redis = new RedisService();
-    this.db = new DatabaseService();
+    this.redis = redisService;
+    this.db = databaseService;
     this.threatPatterns = {
       sqlInjection: /('|(\-\-)|(;)|(\||\|)|(\*|\*))/i,
       xss: /(<script[^>]*>.*?<\/script>|javascript:|on\w+\s*=)/i,

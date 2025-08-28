@@ -17,6 +17,12 @@ class RedisService {
 
   async initialize() {
     try {
+      // Check if Redis is configured
+      if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
+        logger.info('Redis not configured - running without caching');
+        return;
+      }
+
       const redisConfig = {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT) || 6379,
@@ -28,7 +34,10 @@ class RedisService {
         lazyConnect: true,
         keepAlive: 30000,
         connectTimeout: 10000,
-        commandTimeout: 5000
+        commandTimeout: 5000,
+        retryDelayOnClusterDown: 300,
+        retryDelayOnFailover: 100,
+        maxRetriesPerRequest: 3
       };
 
       if (process.env.REDIS_URL) {
@@ -41,29 +50,48 @@ class RedisService {
       }
 
       this.client.on('connect', () => {
-        logger.info('Redis client connected');
+        logger.info('[REDIS INFO] Redis client connected');
         this.isConnected = true;
         this.reconnectAttempts = 0;
       });
 
       this.client.on('error', (error) => {
-        logger.error('Redis client error:', error);
+        logger.error('[REDIS ERROR] Redis connection error');
         this.isConnected = false;
+        // Don't attempt to reconnect if we can't connect initially
+        if (this.reconnectAttempts === 0) {
+          logger.warn('[REDIS WARN] Disabling Redis - continuing without caching');
+          this.client.disconnect();
+        }
       });
 
       this.client.on('close', () => {
-        logger.warn('Redis client connection closed');
+        logger.warn('[REDIS WARN] Redis connection closed');
         this.isConnected = false;
+      });
+
+      this.client.on('reconnecting', () => {
+        this.reconnectAttempts++;
+        logger.info('[REDIS INFO] Redis reconnecting');
+        // Stop reconnecting after max attempts
+        if (this.reconnectAttempts > this.maxReconnectAttempts) {
+          logger.warn('[REDIS WARN] Max reconnection attempts reached - disabling Redis');
+          this.client.disconnect();
+        }
       });
 
       await this.client.connect();
       await this.client.ping();
       
-      logger.info('Redis service initialized successfully');
+      logger.info('[REDIS INFO] Redis service initialized successfully');
       
     } catch (error) {
-      logger.error('Failed to initialize Redis service:', error);
-      logger.warn('Application will continue without Redis caching');
+      logger.error('[REDIS ERROR] Failed to initialize Redis service:', error.message);
+      logger.warn('[REDIS WARN] Application will continue without Redis caching');
+      this.isConnected = false;
+      if (this.client) {
+        this.client.disconnect();
+      }
     }
   }
 
@@ -148,6 +176,91 @@ class RedisService {
     } catch (error) {
       logger.error('Error checking rate limit:', error);
       return { allowed: true, remaining: limit };
+    }
+  }
+
+  async keys(pattern) {
+    try {
+      if (!this.isConnected) return [];
+      return await this.client.keys(pattern);
+    } catch (error) {
+      logger.error('Error getting keys:', error);
+      return [];
+    }
+  }
+
+  async del(key) {
+    try {
+      if (!this.isConnected) return false;
+      await this.client.del(key);
+      return true;
+    } catch (error) {
+      logger.error('Error deleting key:', error);
+      return false;
+    }
+  }
+
+  async ttl(key) {
+    try {
+      if (!this.isConnected) return -1;
+      return await this.client.ttl(key);
+    } catch (error) {
+      logger.error('Error getting TTL:', error);
+      return -1;
+    }
+  }
+
+  async incr(key) {
+    try {
+      if (!this.isConnected) return 0;
+      return await this.client.incr(key);
+    } catch (error) {
+      logger.error('Error incrementing key:', error);
+      return 0;
+    }
+  }
+
+  async expire(key, seconds) {
+    try {
+      if (!this.isConnected) return false;
+      await this.client.expire(key, seconds);
+      return true;
+    } catch (error) {
+      logger.error('Error setting expiration:', error);
+      return false;
+    }
+  }
+
+  async setex(key, seconds, value) {
+    try {
+      if (!this.isConnected) return false;
+      await this.client.setex(key, seconds, value);
+      return true;
+    } catch (error) {
+      logger.error('Error setting key with expiration:', error);
+      return false;
+    }
+  }
+
+  async lpush(key, value) {
+    try {
+      if (!this.isConnected) return false;
+      await this.client.lpush(key, value);
+      return true;
+    } catch (error) {
+      logger.error('Error pushing to list:', error);
+      return false;
+    }
+  }
+
+  async ltrim(key, start, stop) {
+    try {
+      if (!this.isConnected) return false;
+      await this.client.ltrim(key, start, stop);
+      return true;
+    } catch (error) {
+      logger.error('Error trimming list:', error);
+      return false;
     }
   }
 

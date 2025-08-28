@@ -4,13 +4,19 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase configuration. Please check your environment variables.');
-  console.error('Required variables: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY');
+// Check if Supabase credentials are properly configured
+const isSupabaseConfigured = supabaseUrl && supabaseKey && 
+  supabaseUrl !== 'your-supabase-url' && 
+  supabaseKey !== 'your-supabase-anon-key' &&
+  supabaseUrl.startsWith('http');
+
+if (!isSupabaseConfigured) {
+  console.warn('Supabase not configured. Using mock client for development.');
+  console.warn('To enable Supabase, set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file');
 }
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+// Create Supabase client or mock client
+export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -22,7 +28,23 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
       'X-Client-Info': 'statsor-app'
     }
   }
-});
+}) : {
+  // Mock Supabase client for development
+  auth: {
+    getUser: async () => ({ data: { user: null }, error: null }),
+    getSession: async () => ({ data: { session: null }, error: null }),
+    signUp: async () => ({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
+    signInWithPassword: async () => ({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
+    signOut: async () => ({ error: null }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+  },
+  from: () => ({
+    select: () => ({ data: [], error: null }),
+    insert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+    update: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+    delete: () => ({ data: null, error: { message: 'Supabase not configured' } })
+  })
+} as any;
 
 // Auth state management
 export const getUser = async () => {

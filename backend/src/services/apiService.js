@@ -1,15 +1,15 @@
-const { DatabaseService } = require('./database');
-const { RedisService } = require('./redis');
-const { EmailService } = require('./emailService');
+const databaseService = require('./database');
+const redisService = require('./redis');
+const emailService = require('./emailService');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 class APIService {
   constructor() {
-    this.db = new DatabaseService();
-    this.redis = new RedisService();
-    this.email = new EmailService();
+    this.db = databaseService;
+    this.redis = redisService;
+    this.email = emailService;
     this.JWT_SECRET = process.env.JWT_SECRET || 'your-fallback-secret-key';
     this.JWT_EXPIRE = process.env.JWT_EXPIRE || '24h';
     this.REFRESH_TOKEN_EXPIRE = process.env.REFRESH_TOKEN_EXPIRE || '7d';

@@ -98,15 +98,17 @@ window.addEventListener('beforeinstallprompt', (e) => {
   
   document.getElementById('install-btn')?.addEventListener('click', () => {
     installBanner.remove();
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult: any) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the A2HS prompt');
-      } else {
-        console.log('User dismissed the A2HS prompt');
-      }
-      deferredPrompt = null;
-    });
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult: any) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the A2HS prompt');
+        } else {
+          console.log('User dismissed the A2HS prompt');
+        }
+        deferredPrompt = null;
+      });
+    }
   });
   
   document.getElementById('dismiss-btn')?.addEventListener('click', () => {
@@ -114,4 +116,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
   });
 });
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Ensure the root element exists before rendering
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  createRoot(rootElement).render(<App />);
+} else {
+  console.error("Failed to find the root element");
+}

@@ -42,10 +42,10 @@ const fileFormat = winston.format.combine(
 const transports = [];
 
 // Console transport (always enabled in development)
-if (config.config.NODE_ENV === 'development' || true) {
+if (config.NODE_ENV === 'development' || true) {
   transports.push(
     new winston.transports.Console({
-      level: config.loggingConfig.level,
+      level: config.LOG_LEVEL,
       format: consoleFormat,
       handleExceptions: true,
       handleRejections: true
@@ -54,15 +54,15 @@ if (config.config.NODE_ENV === 'development' || true) {
 }
 
 // File transports
-if (config.loggingConfig.file && config.loggingConfig.file !== 'false') {
+if (config.LOG_FILE && config.LOG_FILE !== 'false') {
   // Combined log file with rotation
   transports.push(
     new DailyRotateFile({
       filename: path.join(logsDir, 'app-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
-      maxSize: config.loggingConfig.maxSize,
-      maxFiles: config.loggingConfig.maxFiles,
-      level: config.loggingConfig.level,
+      maxSize: config.LOG_MAX_SIZE,
+      maxFiles: config.LOG_MAX_FILES,
+      level: config.LOG_LEVEL,
       format: fileFormat,
       handleExceptions: true,
       handleRejections: true
@@ -74,8 +74,8 @@ if (config.loggingConfig.file && config.loggingConfig.file !== 'false') {
     new DailyRotateFile({
       filename: path.join(logsDir, 'error-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
-      maxSize: config.loggingConfig.maxSize,
-      maxFiles: config.loggingConfig.maxFiles,
+      maxSize: config.LOG_MAX_SIZE,
+      maxFiles: config.LOG_MAX_FILES,
       level: 'error',
       format: fileFormat,
       handleExceptions: true,
@@ -84,13 +84,13 @@ if (config.loggingConfig.file && config.loggingConfig.file !== 'false') {
   );
 
   // HTTP access log for production
-  if (config.config.NODE_ENV === 'production') {
+  if (config.NODE_ENV === 'production') {
     transports.push(
       new DailyRotateFile({
         filename: path.join(logsDir, 'access-%DATE%.log'),
         datePattern: 'YYYY-MM-DD',
-        maxSize: config.loggingConfig.maxSize,
-        maxFiles: config.loggingConfig.maxFiles,
+        maxSize: config.LOG_MAX_SIZE,
+        maxFiles: config.LOG_MAX_FILES,
         level: 'http',
         format: fileFormat
       })
@@ -100,11 +100,11 @@ if (config.loggingConfig.file && config.loggingConfig.file !== 'false') {
 
 // Create logger instance
 const logger = winston.createLogger({
-  level: config.loggingConfig.level,
+  level: config.LOG_LEVEL,
   format: fileFormat,
   defaultMeta: { 
-    service: 'statsor-backend',
-    environment: config.config.NODE_ENV,
+    service: config.APP_NAME || 'StatSor Backend',
+    environment: config.NODE_ENV,
     version: process.env.npm_package_version || '1.0.0'
   },
   transports,
@@ -239,10 +239,10 @@ if (config.config.NODE_ENV === 'production') {
 
 // Log startup information
 logger.info('Logger initialized', {
-  service: config.app.name,
-  environment: config.app.env,
-  version: config.app.version,
-  fileLogging: !!config.loggingConfig.file,
+  service: config.APP_NAME || 'StatSor Backend',
+  environment: config.NODE_ENV,
+  version: process.env.npm_package_version || '1.0.0',
+  fileLogging: !!config.LOG_FILE,
   consoleLogging: true
 });
 

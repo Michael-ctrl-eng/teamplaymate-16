@@ -14,7 +14,7 @@ class SecurityMiddleware {
     // Strict rate limiting for authentication endpoints
     this.authLimiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5, // 5 attempts per window
+      limit: 5, // 5 attempts per window
       message: {
         error: 'Too many authentication attempts',
         message: 'Please try again later',
@@ -25,20 +25,21 @@ class SecurityMiddleware {
       keyGenerator: (req) => {
         return this.securityService.getClientIP(req);
       },
-      onLimitReached: async (req, res, options) => {
+      handler: async (req, res, next, options) => {
         const ip = this.securityService.getClientIP(req);
         await this.securityService.logSecurityEvent('RATE_LIMIT_EXCEEDED', {
           ip,
           endpoint: req.originalUrl,
           severity: 'MEDIUM'
         });
+        res.status(options.statusCode).json(options.message);
       }
     });
 
     // General API rate limiting
     this.apiLimiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // 100 requests per window
+      limit: 100, // 100 requests per window
       message: {
         error: 'Too many requests',
         message: 'Please slow down your requests'
@@ -52,8 +53,10 @@ class SecurityMiddleware {
     this.speedLimiter = slowDown({
       windowMs: 15 * 60 * 1000, // 15 minutes
       delayAfter: 50, // Allow 50 requests per window at full speed
-      delayMs: 500, // Add 500ms delay per request after delayAfter
-      maxDelayMs: 20000, // Maximum delay of 20 seconds
+      delayMs: (used, req) => {
+        const delayAfter = 50;
+        return used > delayAfter ? Math.min((used - delayAfter) * 500, 20000) : 0;
+      },
       keyGenerator: (req) => {
         return this.securityService.getClientIP(req);
       }

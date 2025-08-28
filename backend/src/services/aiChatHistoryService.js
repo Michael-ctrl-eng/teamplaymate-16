@@ -1,8 +1,8 @@
-const { DatabaseService } = require('./database.js');
+const databaseService = require('./database');
 
-class AiChatHistoryService {
+class AIChatHistoryService {
   constructor() {
-    this.db = new DatabaseService();
+    this.db = databaseService;
     if (!this.db.isHealthy()) {
       this.db.initialize();
     }
@@ -39,4 +39,4 @@ class AiChatHistoryService {
   }
 }
 
-module.exports = { AiChatHistoryService };
+module.exports = AIChatHistoryService;

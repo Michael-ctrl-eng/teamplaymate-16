@@ -8,7 +8,7 @@ const {
   ValidationError, 
   NotFoundError
 } = require('../middleware/errorHandler');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 const apiService = new APIService();
@@ -473,7 +473,7 @@ router.post('/compare-players',
 // @access  Private (Admin/Coach only)
 router.get('/predictive/:type',
   authenticateToken,
-  authorizeRoles(['admin', 'coach', 'manager']),
+  requireRole(['admin', 'coach', 'manager']),
   analyticsLimiter,
   asyncHandler(async (req, res) => {
     const { type } = req.params;

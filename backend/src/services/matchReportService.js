@@ -1,12 +1,13 @@
 const emailService = require('./emailService');
-const { DatabaseService } = require('./database');
+const databaseService = require('./database');
+const logger = require('../utils/logger');
 const handlebars = require('handlebars');
 const fs = require('fs').promises;
 const path = require('path');
 
 class MatchReportService {
   constructor() {
-    this.db = new DatabaseService();
+    this.db = databaseService;
   }
 
   /**

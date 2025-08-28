@@ -1,7 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
-const { DatabaseService } = require('../services/database.js');
-const { RedisService } = require('../services/redis.js');
+const databaseService = require('../services/database.js');
+const redisService = require('../services/redis.js');
 const { SocketService } = require('../services/socket.js');
 const { 
   asyncHandler, 
@@ -20,8 +20,8 @@ const path = require('path');
 const fs = require('fs');
 
 const router = express.Router();
-const db = new DatabaseService();
-const redis = new RedisService();
+const db = databaseService;
+const redis = redisService;
 const socket = new SocketService();
 
 // File upload configuration
