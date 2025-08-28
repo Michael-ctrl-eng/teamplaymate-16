@@ -21,10 +21,5 @@
     "NODE_ENV": "production",
     "FRONTEND_URL": "https://statsor.com",
     "CORS_ORIGIN": "https://statsor.com"
-  },
-  "functions": {
-    "src/index.ts": {
-      "runtime": "nodejs18.x"
-    }
   }
-} 
+}
