@@ -232,6 +232,17 @@ class Server {
     // API routes
     const apiRouter = express.Router();
     
+    // Health check endpoint for Railway
+    apiRouter.get('/health', (req, res) => {
+      res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: config.NODE_ENV,
+        version: process.env.npm_package_version || '1.0.0'
+      });
+    });
+    
     // Mount route modules
     apiRouter.use('/auth', authRoutes);
     apiRouter.use('/players', playersRoutes);
