@@ -144,14 +144,7 @@ const Index = () => {
         initial="hidden"
         animate={isLoaded ? "visible" : "hidden"}
       >
-        {/* Scroll Progress Bar */}
-        <motion.div
-          className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 z-50"
-          style={{
-            scaleX: scrollYProgress,
-            transformOrigin: "0%"
-          }}
-        />
+
 
         {/* Enhanced Navigation */}
         <motion.nav 
