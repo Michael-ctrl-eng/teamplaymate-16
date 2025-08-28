@@ -16,19 +16,7 @@
       "destination": "/index.html"
     }
   ],
-  "env": {
-    "VITE_API_URL": "https://api.statsor.com",
-    "VITE_APP_URL": "https://statsor.com",
-    "VITE_OPENAI_API_KEY": "@openai-api-key",
-    "VITE_SUPABASE_URL": "@supabase-url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "VITE_PAYPAL_CLIENT_ID": "@paypal-client-id",
-    "VITE_PAYPAL_CLIENT_SECRET": "@paypal-client-secret",
-    "VITE_HUGGINGFACE_API_KEY": "@huggingface-api-key",
-    "VITE_FOOTBALL_API_KEY": "@football-api-key",
-    "VITE_WEATHER_API_KEY": "@weather-api-key",
-    "VITE_NEWS_API_KEY": "@news-api-key"
-  },
+
 
   "headers": [
     {
