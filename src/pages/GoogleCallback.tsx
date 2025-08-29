@@ -19,42 +19,59 @@ const GoogleCallback: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Get the authorization code from URL query parameters
+        // Get tokens from URL query parameters (direct from backend)
         const searchParams = new URLSearchParams(location.search);
-        const code = searchParams.get('code');
+        const token = searchParams.get('token');
+        const refreshToken = searchParams.get('refresh');
         const error = searchParams.get('error');
-        const state = searchParams.get('state');
+        const code = searchParams.get('code');
 
         // Check for OAuth errors
         if (error) {
           throw new Error(`Google OAuth error: ${error}`);
         }
 
-        if (!code) {
-          throw new Error('No authorization code found in the callback URL');
+        // Handle direct token approach (from backend redirect)
+        if (token && refreshToken) {
+          toast.info('Processing Google authentication...');
+          
+          // Store tokens directly
+          localStorage.setItem('token', token);
+          localStorage.setItem('refreshToken', refreshToken);
+          
+          // Update auth context
+          const result = { success: true };
+          
+          setSuccess(true);
+          toast.success('Authentication successful! Redirecting...');
+          
+          // Small delay before redirect to show success state
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
+          return;
         }
 
-        // Verify state parameter for CSRF protection
-        if (state && !state.startsWith('google_auth_')) {
-          throw new Error('Invalid state parameter');
+        // Handle authorization code approach (fallback)
+        if (code) {
+          toast.info('Processing Google authentication...');
+          const result = await handleGoogleCallback(code);
+          
+          if (result.error) {
+            throw new Error(result.error);
+          }
+          
+          setSuccess(true);
+          toast.success('Authentication successful! Redirecting...');
+          
+          // Small delay before redirect to show success state
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
+          return;
         }
 
-        toast.info('Processing Google authentication...');
-
-        // Exchange the code for a token
-        const result = await handleGoogleCallback(code);
-
-        if (result.error) {
-          throw new Error(result.error);
-        }
-
-        setSuccess(true);
-        toast.success('Authentication successful! Redirecting...');
-        
-        // Small delay before redirect to show success state
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1500);
+        throw new Error('No authentication tokens or code found in the callback URL');
         
       } catch (err: any) {
         console.error('Google callback error:', err);

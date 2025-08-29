@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  BarChart, PieChart, TrendingUp, Users, Calendar, 
-  Download, Plus, Trophy, Shield, X, Trash2
+  BarChart, BarChart3, PieChart, TrendingUp, Users, Calendar, 
+  Download, Plus, Trophy, Shield, X, Trash2, Target, Activity, 
+  Search, RefreshCw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -1010,7 +1011,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
                     ))}
                   </div>
                 )}
-              </CardContentContent>
+              </CardContent>
             </Card>
           </motion.div>
           

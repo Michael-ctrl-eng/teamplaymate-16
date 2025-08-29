@@ -51,17 +51,17 @@ const PRODUCTION_APIS = {
     },
     rateLimit: -1 // unlimited (free tier)
   },
-  
+
   OPENAI: {
     base: 'https://api.openai.com/v1',
     key: import.meta.env?.['VITE_OPENAI_API_KEY'] || '',
     endpoints: {
       chat: '/chat/completions',
-      embeddings: '/embeddings'
+      completions: '/completions'
     },
-    rateLimit: 'usage_based'
+    rateLimit: 3 // requests per minute (free tier)
   },
-  
+
   // News APIs
   NEWS_API: {
     base: 'https://newsapi.org/v2',
@@ -88,8 +88,8 @@ const PRODUCTION_APIS = {
 export class ProductionAPIIntegrationService {
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private rateLimits: Map<string, { count: number; resetTime: number }> = new Map();
-  private requestQueue: Map<string, Promise<any>> = new Map();
-  private cacheTimeout = 3600 * 1000; // 1 hour
+  private _requestQueue: Map<string, Promise<any>> = new Map();
+  private _cacheTimeout = 3600 * 1000; // 1 hour
   
   constructor() {
     this.initializeServices();

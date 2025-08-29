@@ -130,71 +130,85 @@ class TrainingService {
         throw new Error('Popup blocked - please allow popups for PDF export');
       }
       
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Training Session: ${session.name}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 20px; 
-              line-height: 1.6;
-            }
-            .header { 
-              text-align: center; 
-              margin-bottom: 30px; 
-              border-bottom: 2px solid #4ADE80;
-              padding-bottom: 20px;
-            }
-            .session-info { 
-              background: #f8f9fa; 
-              padding: 15px; 
-              border-radius: 8px; 
-              margin-bottom: 20px; 
-            }
-            .exercise { 
-              border: 1px solid #ddd; 
-              margin: 10px 0; 
-              padding: 15px; 
-              border-radius: 8px;
-              page-break-inside: avoid;
-            }
-            .exercise-header { 
-              font-weight: bold; 
-              color: #4ADE80; 
-              margin-bottom: 10px;
-              font-size: 18px;
-            }
-            .exercise-details { 
-              display: grid; 
-              grid-template-columns: 1fr 1fr; 
-              gap: 10px; 
-              margin: 10px 0;
-            }
-            .badge { 
-              display: inline-block; 
-              padding: 4px 8px; 
-              border-radius: 4px; 
-              font-size: 12px; 
-              font-weight: bold;
-              margin-right: 5px;
-            }
-            .badge-tactico { background: #dbeafe; color: #1e40af; }
-            .badge-tecnico { background: #dcfce7; color: #166534; }
-            .badge-fisico { background: #fee2e2; color: #991b1b; }
-            .badge-cognitivo { background: #f3e8ff; color: #7c3aed; }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-            }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-        </html>
-      `);
+      // Create document structure safely without document.write
+      const doc = printWindow.document;
+      doc.open();
+      
+      // Create HTML structure
+      const html = doc.createElement('html');
+      const head = doc.createElement('head');
+      const body = doc.createElement('body');
+      
+      // Set title
+      const title = doc.createElement('title');
+      title.textContent = `Training Session: ${session.name}`;
+      head.appendChild(title);
+      
+      // Create and append styles
+      const style = doc.createElement('style');
+      style.textContent = `
+        body { 
+          font-family: Arial, sans-serif; 
+          margin: 20px; 
+          line-height: 1.6;
+        }
+        .header { 
+          text-align: center; 
+          margin-bottom: 30px; 
+          border-bottom: 2px solid #4ADE80;
+          padding-bottom: 20px;
+        }
+        .session-info { 
+          background: #f8f9fa; 
+          padding: 15px; 
+          border-radius: 8px; 
+          margin-bottom: 20px; 
+        }
+        .exercise { 
+          border: 1px solid #ddd; 
+          margin: 10px 0; 
+          padding: 15px; 
+          border-radius: 8px;
+          page-break-inside: avoid;
+        }
+        .exercise-header { 
+          font-weight: bold; 
+          color: #4ADE80; 
+          margin-bottom: 10px;
+          font-size: 18px;
+        }
+        .exercise-details { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          gap: 10px; 
+          margin: 10px 0;
+        }
+        .badge { 
+          display: inline-block; 
+          padding: 4px 8px; 
+          border-radius: 4px; 
+          font-size: 12px; 
+          font-weight: bold;
+          margin-right: 5px;
+        }
+        .badge-tactico { background: #dbeafe; color: #1e40af; }
+        .badge-tecnico { background: #dcfce7; color: #166534; }
+        .badge-fisico { background: #fee2e2; color: #991b1b; }
+        .badge-cognitivo { background: #f3e8ff; color: #7c3aed; }
+        @media print {
+          body { margin: 0; }
+          .no-print { display: none; }
+        }
+      `;
+      head.appendChild(style);
+      
+      // Set body content safely
+      body.innerHTML = htmlContent;
+      
+      // Assemble document
+      html.appendChild(head);
+      html.appendChild(body);
+      doc.appendChild(html);
       
       printWindow.document.close();
       

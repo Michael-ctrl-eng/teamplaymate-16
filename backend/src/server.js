@@ -23,6 +23,7 @@ const { errorHandler } = require('./middleware/errorHandler');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const teamsRoutes = require('./routes/teams');
 const playersRoutes = require('./routes/players');
 const matchesRoutes = require('./routes/matches');
 const analyticsRoutes = require('./routes/analytics');
@@ -91,8 +92,12 @@ class Server {
     // Initialize Redis (optional)
     logger.info('Initializing Redis connection...');
     try {
-      await initializeRedis();
-      logger.info('Redis connected successfully');
+      const redisResult = await initializeRedis();
+      if (redisResult && redisResult.connected) {
+        logger.info('Redis connected successfully');
+      } else {
+        logger.warn('Redis initialization completed but not connected - running without Redis');
+      }
     } catch (redisError) {
       logger.warn('Redis connection failed, continuing without Redis:', redisError.message);
     }
@@ -245,6 +250,7 @@ class Server {
     
     // Mount route modules
     apiRouter.use('/auth', authRoutes);
+    apiRouter.use('/teams', teamsRoutes);
     apiRouter.use('/players', playersRoutes);
     apiRouter.use('/players-enhanced', require('./routes/playersEnhanced')); // Enhanced player routes
     apiRouter.use('/matches', matchesRoutes);
@@ -276,6 +282,14 @@ class Server {
             'POST /auth/reset-password': 'Password reset confirmation',
             'GET /auth/google': 'Google OAuth login',
             'GET /auth/google/callback': 'Google OAuth callback'
+          },
+          teams: {
+            'GET /teams': 'List teams with filtering and pagination',
+            'POST /teams': 'Create new team',
+            'GET /teams/:id': 'Get team details with players',
+            'PUT /teams/:id': 'Update team information',
+            'DELETE /teams/:id': 'Delete team (if no active players)',
+            'GET /teams/:id/statistics': 'Get team performance statistics'
           },
           players: {
             'GET /players': 'List players with advanced filtering',

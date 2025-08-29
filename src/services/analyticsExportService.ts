@@ -161,7 +161,7 @@ class AnalyticsExportService {
     }
   }
 
-  private async exportToPDF(exportData: ExportData, filename: string, options: ExportOptions): Promise<void> {
+  private async exportToPDF(exportData: ExportData, _filename: string, options: ExportOptions): Promise<void> {
     try {
       const htmlContent = this.generatePDFContent(exportData, options);
       
@@ -171,91 +171,105 @@ class AnalyticsExportService {
         throw new Error('Popup blocked - please allow popups for PDF export');
       }
       
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${exportData.title}</title>
-          <style>
-            body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              margin: 20px; 
-              line-height: 1.6;
-              color: #333;
-            }
-            .header { 
-              text-align: center; 
-              margin-bottom: 30px; 
-              border-bottom: 3px solid #4ADE80;
-              padding-bottom: 20px;
-            }
-            .header h1 {
-              color: #1f2937;
-              margin: 0;
-              font-size: 28px;
-            }
-            .metadata { 
-              background: #f8f9fa; 
-              padding: 15px; 
-              border-radius: 8px; 
-              margin-bottom: 20px;
-              border-left: 4px solid #4ADE80;
-            }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin: 20px 0;
-              font-size: 12px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 8px; 
-              text-align: left; 
-            }
-            th { 
-              background-color: #4ADE80; 
-              color: white; 
-              font-weight: bold;
-              text-align: center;
-            }
-            tr:nth-child(even) { 
-              background-color: #f8f9fa; 
-            }
-            .summary {
-              display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-              gap: 15px;
-              margin: 20px 0;
-            }
-            .summary-card {
-              background: #f1f5f9;
-              padding: 15px;
-              border-radius: 8px;
-              text-align: center;
-              border: 1px solid #e2e8f0;
-            }
-            .summary-card h3 {
-              margin: 0 0 10px 0;
-              color: #4ADE80;
-              font-size: 16px;
-            }
-            .summary-card .value {
-              font-size: 24px;
-              font-weight: bold;
-              color: #1f2937;
-            }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none; }
-              table { font-size: 10px; }
-            }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-        </html>
-      `);
+      // Create document structure safely without document.write
+      const doc = printWindow.document;
+      doc.open();
+      
+      // Create HTML structure
+      const html = doc.createElement('html');
+      const head = doc.createElement('head');
+      const body = doc.createElement('body');
+      
+      // Set title
+      const title = doc.createElement('title');
+      title.textContent = exportData.title;
+      head.appendChild(title);
+      
+      // Create and append styles
+      const style = doc.createElement('style');
+      style.textContent = `
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          margin: 20px; 
+          line-height: 1.6;
+          color: #333;
+        }
+        .header { 
+          text-align: center; 
+          margin-bottom: 30px; 
+          border-bottom: 3px solid #4ADE80;
+          padding-bottom: 20px;
+        }
+        .header h1 {
+          color: #1f2937;
+          margin: 0;
+          font-size: 28px;
+        }
+        .metadata { 
+          background: #f8f9fa; 
+          padding: 15px; 
+          border-radius: 8px; 
+          margin-bottom: 20px;
+          border-left: 4px solid #4ADE80;
+        }
+        table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          margin: 20px 0;
+          font-size: 12px;
+        }
+        th, td { 
+          border: 1px solid #ddd; 
+          padding: 8px; 
+          text-align: left; 
+        }
+        th { 
+          background-color: #4ADE80; 
+          color: white; 
+          font-weight: bold;
+          text-align: center;
+        }
+        tr:nth-child(even) { 
+          background-color: #f8f9fa; 
+        }
+        .summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 15px;
+          margin: 20px 0;
+        }
+        .summary-card {
+          background: #f1f5f9;
+          padding: 15px;
+          border-radius: 8px;
+          text-align: center;
+          border: 1px solid #e2e8f0;
+        }
+        .summary-card h3 {
+          margin: 0 0 10px 0;
+          color: #4ADE80;
+          font-size: 16px;
+        }
+        .summary-card .value {
+          font-size: 24px;
+          font-weight: bold;
+          color: #1f2937;
+        }
+        @media print {
+          body { margin: 0; }
+          .no-print { display: none; }
+          table { font-size: 10px; }
+        }
+      `;
+      head.appendChild(style);
+      
+      // Set body content safely
+      body.innerHTML = htmlContent;
+      
+      // Assemble document
+      html.appendChild(head);
+      html.appendChild(body);
+      doc.appendChild(html);
       
       printWindow.document.close();
       

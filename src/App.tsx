@@ -132,6 +132,7 @@ const App = () => (
               <Route path="/test" element={<TestPage />} />
               <Route path="/valorant" element={<ValorantAnalysis />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />
+              <Route path="/auth/callback" element={<GoogleCallback />} />
               <Route path="/payment/success" element={<PaymentSuccess />} />
               <Route path="/payment/cancel" element={<PaymentCancel />} />
               <Route path="/paypal-payment" element={<PayPalPayment />} />

@@ -657,7 +657,7 @@ class AIChatService {
     return response;
   }
 
-  private async handleAccountManagement(_message: string, _userContext: UserContext): Promise<AIResponse> {
+  private async handleAccountManagement(message: string, userContext: UserContext): Promise<AIResponse> {
     try {
       let response = '';
       
@@ -699,7 +699,7 @@ class AIChatService {
     }
   }
 
-  private async handleTacticalAnalysis(_message: string, _userContext: UserContext): Promise<AIResponse> {
+  private async handleTacticalAnalysis(message: string, userContext: UserContext): Promise<AIResponse> {
     try {
       const tacticalInsights = await footballAnalysisService.analyzeTeamTactics({
         teamData: userContext.teamData,
@@ -718,7 +718,7 @@ class AIChatService {
     }
   }
 
-  private async handlePlayerAnalysis(_message: string, _userContext: UserContext): Promise<AIResponse> {
+  private async handlePlayerAnalysis(message: string, userContext: UserContext): Promise<AIResponse> {
     try {
       const playerInsights = await footballAnalysisService.analyzePlayer({
         teamData: userContext.teamData,
@@ -737,7 +737,7 @@ class AIChatService {
     }
   }
 
-  private async handleTrainingRecommendations(_message: string, _userContext: UserContext): Promise<AIResponse> {
+  private async handleTrainingRecommendations(message: string, userContext: UserContext): Promise<AIResponse> {
     try {
       const trainingPlan = await footballAnalysisService.generateTrainingPlan({
         teamData: userContext.teamData,
@@ -881,7 +881,7 @@ Customized for: "${originalMessage}"`;
     return footballKeywords.some(keyword => message.toLowerCase().includes(keyword));
   }
 
-  private async handleFootballAnalysis(_message: string, _userContext: UserContext): Promise<AIResponse> {
+  private async handleFootballAnalysis(message: string, userContext: UserContext): Promise<AIResponse> {
     try {
       // Use football analysis service for enhanced responses
       const analysisResult = await footballAnalysisService.analyzeMatch({
@@ -915,7 +915,7 @@ Customized for: "${originalMessage}"`;
 This analysis is based on current football tactics and your query: "${originalMessage}"`;
   }
 
-  private async callOpenAI(_message: string, userContext: UserContext, apiKey: string): Promise<AIResponse> {
+  private async callOpenAI(message: string, userContext: UserContext, apiKey: string): Promise<AIResponse> {
     const systemPrompt = this.buildSystemPrompt(userContext);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -985,7 +985,7 @@ This analysis is based on current football tactics and your query: "${originalMe
     return response;
   }
 
-  private async generateAnalysisResponse(_message: string, userContext: UserContext, analysis: any): Promise<AIResponse> {
+  private async generateAnalysisResponse(message: string, userContext: UserContext, analysis: any): Promise<AIResponse> {
     let content = "📊 **Analysis Results**\n\n";
     
     if (userContext.teamData) {
@@ -1023,7 +1023,7 @@ This analysis is based on current football tactics and your query: "${originalMe
     };
   }
 
-  private async generateSuggestionResponse(_message: string, userContext: UserContext, analysis: any): Promise<AIResponse> {
+  private async generateSuggestionResponse(message: string, userContext: UserContext, analysis: any): Promise<AIResponse> {
     let content = "💡 **Personalized Suggestions**\n\n";
     
     // Base suggestions on user's team data and preferences
@@ -1151,7 +1151,7 @@ Instructions:
     return responses[Math.floor(Math.random() * responses.length)];
   }
   
-  private personalizeResponse(content: string, _userContext: UserContext, _originalMessage: string): string {
+  private personalizeResponse(content: string, userContext: UserContext, _originalMessage: string): string {
     // Add sport-specific context
     if (userContext.sport === 'futsal' && !content.includes('futsal')) {
       content = content.replace('soccer', 'futsal').replace('football', 'futsal');
@@ -1320,7 +1320,7 @@ Instructions:
     return (questions || []).slice(0, 2);
   }
 
-  private async callEnhancedOpenAI(_message: string, userContext: UserContext, _analysis: any, _apiKey: string, _model: string = 'gpt-4'): Promise<AIResponse> {
+  private async callEnhancedOpenAI(message: string, userContext: UserContext, analysis: any, apiKey: string, model: string = 'gpt-4'): Promise<AIResponse> {
     const systemPrompt = this.buildEnhancedSystemPrompt(userContext, analysis);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1484,7 +1484,7 @@ Instructions:
     };
   }
 
-  private async generateTacticalResponse(_message: string, _userContext: UserContext, analysis: any): Promise<AIResponse> {
+  private async generateTacticalResponse(message: string, userContext: UserContext, analysis: any): Promise<AIResponse> {
     let content = "⚽ **Tactical Analysis**\n\n";
     
     // Get relevant formation data
@@ -1511,7 +1511,7 @@ Instructions:
     };
   }
 
-  private async generateTrainingResponse(_message: string, _userContext: UserContext, analysis: any): Promise<AIResponse> {
+  private async generateTrainingResponse(message: string, userContext: UserContext, analysis: any): Promise<AIResponse> {
     let content = "🏃 **Training Program**\n\n";
     
     const trainingMethods = this.knowledgeBase.get('trainingMethods') || {};
@@ -1536,7 +1536,7 @@ Instructions:
     };
   }
 
-  private async generatePlayerAnalysisResponse(_message: string, _userContext: UserContext, analysis: any): Promise<AIResponse> {
+  private async generatePlayerAnalysisResponse(message: string, userContext: UserContext, analysis: any): Promise<AIResponse> {
     let content = "👥 **Player Analysis**\n\n";
     
     if (userContext.teamData?.players && analysis.entities.length > 0) {
@@ -1569,7 +1569,7 @@ Instructions:
     };
   }
 
-  private generateDataDrivenRecommendations(_userContext: UserContext, analysis: any): string {
+  private generateDataDrivenRecommendations(userContext: UserContext, analysis: any): string {
     const recommendations = [];
     
     if (userContext.teamData?.teamStats) {
@@ -1584,7 +1584,7 @@ Instructions:
     return recommendations.join('\n• ') || 'Continue current development path';
   }
 
-  private getSpecificSuggestions(area: string, _userContext: UserContext): string {
+  private getSpecificSuggestions(area: string, userContext: UserContext): string {
     const suggestions: Record<string, string> = {
       'attack': 'Focus on quick passing combinations and movement off the ball',
       'defense': 'Work on defensive shape and pressing triggers',
@@ -1624,7 +1624,7 @@ Instructions:
       .split(' ')
       .filter(word => ['formation', 'training', 'tactics', 'defense', 'attack', 'futsal', 'soccer'].includes(word));
     
-    const topTopics = [...new Set(topics)].slice(0, 3);
+    const topTopics = Array.from(new Set(topics)).slice(0, 3);
 
     return {
       totalMessages: messages.length,
@@ -1689,7 +1689,7 @@ Instructions:
     return advice.join('\n');
   }
 
-  private formatProfileInfo(profile: any, _userContext: UserContext): string {
+  private formatProfileInfo(profile: any, userContext: UserContext): string {
     if (!profile) {
       return '## Profile Information\n\nI couldn\'t retrieve your profile information at the moment. Please try again later.';
     }
@@ -1709,7 +1709,7 @@ Instructions:
     return response;
   }
 
-  private formatUserSettings(settings: any, _userContext: UserContext): string {
+  private formatUserSettings(settings: any, userContext: UserContext): string {
     let response = `## Your Current Settings\n\n`;
     
     response += `**Appearance:**\n`;
@@ -1734,7 +1734,7 @@ Instructions:
     return response;
   }
 
-  private formatSubscriptionInfo(subscription: any, _userContext: UserContext): string {
+  private formatSubscriptionInfo(subscription: any, userContext: UserContext): string {
     if (!subscription) {
       return '## Subscription Information\n\nI couldn\'t retrieve your subscription information at the moment. Please try again later.';
     }
@@ -1762,7 +1762,7 @@ Instructions:
     return response;
   }
 
-  private formatAccountActivity(activities: any[], _userContext: UserContext): string {
+  private formatAccountActivity(activities: any[], userContext: UserContext): string {
     let response = `## Recent Account Activity\n\n`;
     
     if (!activities || activities.length === 0) {
@@ -1779,7 +1779,7 @@ Instructions:
     return response;
   }
 
-  private formatSecurityInfo(security: any, _userContext: UserContext): string {
+  private formatSecurityInfo(security: any, userContext: UserContext): string {
     let response = `## Security & Privacy Settings\n\n`;
     
     response += `**Two-Factor Authentication:** ${security.twoFactorEnabled ? 'Enabled ✅' : 'Disabled ⚠️'}\n`;
@@ -1808,7 +1808,7 @@ Instructions:
     return response;
   }
 
-  private formatDataExportInfo(_userContext: UserContext): string {
+  private formatDataExportInfo(userContext: UserContext): string {
     let response = `## Data Export Options\n\n`;
     
     response += `You can request to export your data in the following formats:\n\n`;
@@ -1830,7 +1830,7 @@ Instructions:
     return response;
   }
 
-  private formatAccountOverview(_userContext: UserContext): string {
+  private formatAccountOverview(userContext: UserContext): string {
     let response = `## Account Management Help\n\n`;
     
     response += `I can help you with various account-related tasks:\n\n`;

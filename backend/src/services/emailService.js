@@ -11,6 +11,13 @@ class EmailService {
 
   async initializeTransporter() {
     try {
+      // Check if email credentials are properly configured
+      if (!process.env.EMAIL_PASS || process.env.EMAIL_PASS === 'temp_password_placeholder') {
+        console.log('⚠️ Email service disabled - no valid credentials configured');
+        this.transporter = null;
+        return;
+      }
+
       // Configure nodemailer with Gmail SMTP
       this.transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
@@ -30,6 +37,8 @@ class EmailService {
       console.log('✅ Email service initialized successfully');
     } catch (error) {
       console.error('❌ Email service initialization failed:', error.message);
+      console.log('⚠️ Email service disabled - continuing without email functionality');
+      this.transporter = null;
       // Don't throw error to prevent app crash, just log it
     }
   }
@@ -37,7 +46,8 @@ class EmailService {
   async sendEmail(options) {
     try {
       if (!this.transporter) {
-        throw new Error('Email transporter not initialized');
+        console.log('⚠️ Email service not available - skipping email send');
+        return { success: false, error: 'Email service not configured' };
       }
 
       const mailOptions = {

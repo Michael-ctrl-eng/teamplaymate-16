@@ -189,33 +189,21 @@ class DatabaseService {
         }
       ];
 
+      // Check if tables exist by trying to query them
       for (const table of tables) {
-        const { error } = await this.supabase.rpc('exec_sql', {
-          sql: table.schema
-        });
-        
-        if (error) {
-          logger.warn(`Could not create table ${table.name}:`, error.message);
-        } else {
-          logger.info(`Table ${table.name} ready`);
-        }
-      }
-
-      // Create indexes for better performance
-      const indexes = [
-        'CREATE INDEX IF NOT EXISTS idx_players_user_id ON players(user_id);',
-        'CREATE INDEX IF NOT EXISTS idx_players_team_id ON players(team_id);',
-        'CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date);',
-        'CREATE INDEX IF NOT EXISTS idx_analytics_entity ON analytics(entity_type, entity_id);',
-        'CREATE INDEX IF NOT EXISTS idx_analytics_recorded_at ON analytics(recorded_at);',
-        'CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);',
-        'CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);'
-      ];
-
-      for (const index of indexes) {
-        const { error } = await this.supabase.rpc('exec_sql', { sql: index });
-        if (error) {
-          logger.warn('Could not create index:', error.message);
+        try {
+          const { error } = await this.supabase
+            .from(table.name)
+            .select('count')
+            .limit(1);
+          
+          if (error && error.code === 'PGRST116') {
+            logger.warn(`Table ${table.name} does not exist. Please run Supabase migrations.`);
+          } else {
+            logger.info(`Table ${table.name} is available`);
+          }
+        } catch (err) {
+          logger.warn(`Could not check table ${table.name}:`, err.message);
         }
       }
 

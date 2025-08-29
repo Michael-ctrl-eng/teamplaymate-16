@@ -348,16 +348,7 @@ class AnalyticsDataService {
     return Math.min(100, Math.round(formScore / recentMatches.length));
   }
 
-  /**
-   * Get mental state based on performance
-   */
-  private getMentalState(rating: string | number): string {
-    const numRating = parseFloat(rating?.toString() || '0');
-    if (numRating >= 8) return 'Confident';
-    if (numRating >= 7) return 'Motivated';
-    if (numRating >= 6) return 'Focused';
-    return 'Stressed';
-  }
+
 
   /**
    * Generate personalized tips based on player data

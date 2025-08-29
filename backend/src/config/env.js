@@ -61,6 +61,10 @@ const config = {
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
   REDIS_DB: process.env.REDIS_DB ? parseInt(process.env.REDIS_DB) : undefined,
   REDIS_URL: process.env.REDIS_URL,
+  
+  // Upstash Redis
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 
   // JWT
   JWT_SECRET: process.env.JWT_SECRET,
@@ -244,7 +248,11 @@ const redisConfig = {
   port: config.REDIS_PORT,
   password: config.REDIS_PASSWORD,
   db: config.REDIS_DB,
-  url: config.REDIS_URL
+  url: config.REDIS_URL,
+  upstash: {
+    restUrl: config.UPSTASH_REDIS_REST_URL,
+    restToken: config.UPSTASH_REDIS_REST_TOKEN
+  }
 };
 
 // JWT configuration object

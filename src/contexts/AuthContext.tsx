@@ -190,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Real Google OAuth implementation
-      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const redirectUri = 'http://localhost:3001/api/v1/auth/google/callback';
       const scope = 'openid email profile';
       const responseType = 'code';
       const accessType = 'offline';
